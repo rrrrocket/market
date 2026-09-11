@@ -2,6 +2,8 @@
 
 Global Demand Intelligence answers one practical question: given a Chinese product, which destination markets deserve attention first, and why?
 
+Production URL: `https://market.matrix-one.tech`
+
 The current connected layer ranks countries using observed import size, structural growth, momentum, and stability. It deliberately does **not** predict sales or invent logistics, tariffs, certification, marketplace competition, supplier fit, or economics when those sources are absent.
 
 ## Architecture
@@ -31,11 +33,23 @@ Without `.env`, the API uses local SQLite for convenience. Docker and `.env.exam
 
 ## Docker
 
+One-command start from the repository root:
+
+```bash
+./start.sh
+```
+
+The script validates Docker, builds the images, starts all three services, waits for the same-origin API route, and prints the service URLs.
+
+Or run Docker Compose directly:
+
 ```bash
 docker compose up --build
 ```
 
 This starts PostgreSQL on the internal network, the API at `:7891`, and the web app at `:7890` (the standard `3000`/`8000` ports are intentionally left free for the existing workspace services).
+
+In production, point `market.matrix-one.tech` at the web service on port `7890`. The browser uses same-origin `/api/*` requests, and Next.js proxies them to the private `api:8000` service. Port `7891` is retained for local diagnostics and does not need to be publicly exposed.
 
 ## Fixture and Comtrade configuration
 

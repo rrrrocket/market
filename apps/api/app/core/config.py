@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_env: str = "development"
+    public_web_url: str = "https://market.matrix-one.tech"
     database_url: str = "sqlite:///./market.db"
     trade_data_provider: str = "fixture"
     comtrade_api_key: str = ""

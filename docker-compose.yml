@@ -23,6 +23,7 @@ services:
       DATABASE_URL: postgresql+psycopg://market:market@postgres:5432/market
       TRADE_DATA_PROVIDER: fixture
       LATEST_COMPLETE_TRADE_YEAR: "2025"
+      PUBLIC_WEB_URL: https://market.matrix-one.tech
     ports: ["7891:8000"]
     depends_on:
       postgres:
@@ -33,7 +34,8 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:7891
+        NEXT_PUBLIC_API_BASE_URL: ""
+        API_PROXY_TARGET: http://api:8000
     ports: ["7890:3000"]
     depends_on: [api]
 volumes:

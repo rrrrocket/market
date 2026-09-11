@@ -3,7 +3,11 @@ import Link from "next/link";
 import "./globals.css";
 import "./enhancements.css";
 
-export const metadata: Metadata = { title: "Matrix One Market", description: "Explainable global demand intelligence for Chinese products" };
+export const metadata: Metadata = {
+  metadataBase: new URL("https://market.matrix-one.tech"),
+  title: "Matrix One Market",
+  description: "Explainable global demand intelligence for Chinese products",
+};
 export default function RootLayout({children}:{children:React.ReactNode}) {
   return <html lang="en"><body>
     <header className="topbar"><div className="shell nav">

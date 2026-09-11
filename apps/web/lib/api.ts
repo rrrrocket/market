@@ -1,5 +1,5 @@
 import { DataQuality, Detail, History, Opportunity, WatchlistItem } from "@/types/market";
-export const API = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+export const API = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API}/api/v1${path}`, { ...init, cache: "no-store", headers: {"Content-Type":"application/json", ...init?.headers} });

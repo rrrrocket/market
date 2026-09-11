@@ -33,6 +33,6 @@ External systems are adapters. Business services depend on `TradeDataProvider` a
 
 `ProviderRegistry` exposes capabilities, reliability, enablement, health, sync time, and rate-limit notes. Live, fixture, and null implementations share contracts, so unavailable sources remain explicit without branching throughout business services.
 
-The deployment remains a three-service Docker Compose application: Next.js web, FastAPI API, and PostgreSQL. `data_jobs` provides durable state for ingestion, normalization, scoring, refresh, backfill, and matching jobs.
+The deployment remains a single three-service Docker Compose application: Next.js web, FastAPI API, and PostgreSQL. Docker is the only deployment mode, so hosts require no machine-specific Python or Node.js setup and there are no environment-specific Compose variants. `data_jobs` provides durable state for ingestion, normalization, scoring, refresh, backfill, and matching jobs.
 
 The public origin is `https://market.matrix-one.tech`. Next.js owns that origin and proxies same-origin `/api/*` traffic to FastAPI over the private Docker network at `api:8000`; PostgreSQL is never exposed publicly.

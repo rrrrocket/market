@@ -26,8 +26,9 @@ docker compose up -d --build --remove-orphans
 echo "Waiting for the web and API services..."
 ready=false
 for _ in $(seq 1 60); do
-  if curl --fail --silent --show-error --max-time 2 \
-    http://127.0.0.1:7890/api/v1/health >/dev/null 2>&1; then
+  if docker compose exec -T web \
+    node -e 'const host = require("os").hostname(); fetch(`http://${host}:3000/api/v1/health`).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))' \
+    >/dev/null 2>&1; then
     ready=true
     break
   fi
@@ -44,6 +45,6 @@ fi
 docker compose ps
 echo
 echo "Matrix One Market is ready."
-echo "Production: https://market.matrix-one.tech"
-echo "Local web:  http://127.0.0.1:7890"
-echo "Local API:  http://127.0.0.1:7891/api/v1/health"
+echo "Service:   https://market.matrix-one.tech"
+echo "Web:       http://127.0.0.1:7890"
+echo "Direct API: http://127.0.0.1:7891/api/v1/health"

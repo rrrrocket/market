@@ -16,40 +16,17 @@ The current connected layer ranks countries using observed import size, structur
 
 The system flow is: provider registry → raw snapshot → canonical observations → demand signals → versioned opportunity → evidence → API/UI. Supply Fit, Economics, Risk, Decision, and ERP Outcome use the same nullable, auditable model rather than a separate phase architecture.
 
-## Local start
+## Docker deployment
 
-```bash
-cp .env.example .env
-python3 -m venv .venv
-.venv/bin/pip install -e 'apps/api[dev]'
-cd apps/web && npm install && cd ../..
-make migrate
-make seed
-```
-
-Start the API and web app in separate terminals using the commands printed by `make dev`. Open `http://localhost:3000` and analyze HS `902620`.
-
-Without `.env`, the API uses local SQLite for convenience. Docker and `.env.example` use PostgreSQL as required for the deployed system.
-
-## Docker
-
-One-command start from the repository root:
+Docker is the only supported deployment mode on every machine. There are no development/production Compose variants or machine-specific runtime steps.
 
 ```bash
 ./start.sh
 ```
 
-The script validates Docker, builds the images, starts all three services, waits for the same-origin API route, and prints the service URLs.
+The command builds and starts the single `market` Compose project: PostgreSQL, FastAPI on port `7891`, and Next.js on port `7890`. It waits until the same-origin API path is ready before returning.
 
-Or run Docker Compose directly:
-
-```bash
-docker compose up --build
-```
-
-This starts PostgreSQL on the internal network, the API at `:7891`, and the web app at `:7890` (the standard `3000`/`8000` ports are intentionally left free for the existing workspace services).
-
-In production, point `market.matrix-one.tech` at the web service on port `7890`. The browser uses same-origin `/api/*` requests, and Next.js proxies them to the private `api:8000` service. Port `7891` is retained for local diagnostics and does not need to be publicly exposed.
+Point `market.matrix-one.tech` at port `7890`. Browser requests use same-origin `/api/*`, and Next.js proxies them to `api:8000` over the Docker network.
 
 ## Fixture and Comtrade configuration
 

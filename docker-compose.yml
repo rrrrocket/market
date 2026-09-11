@@ -1,0 +1,40 @@
+name: market
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: market
+      POSTGRES_USER: market
+      POSTGRES_PASSWORD: market
+    volumes:
+      - market_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U market"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  api:
+    image: market-api:latest
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://market:market@postgres:5432/market
+      TRADE_DATA_PROVIDER: fixture
+      LATEST_COMPLETE_TRADE_YEAR: "2025"
+    ports: ["7891:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  web:
+    image: market-web:latest
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:7891
+    ports: ["7890:3000"]
+    depends_on: [api]
+volumes:
+  market_postgres:

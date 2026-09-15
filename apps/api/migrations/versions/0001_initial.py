@@ -1,4 +1,5 @@
 """Initial canonical and intelligence schema."""
+
 from alembic import op
 
 from app.core.database import Base
@@ -18,4 +19,3 @@ def upgrade():
 def downgrade():
     bind = op.get_bind()
     Base.metadata.drop_all(bind=bind)
-

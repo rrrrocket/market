@@ -21,10 +21,45 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://market:market@postgres:5432/market
-      TRADE_DATA_PROVIDER: fixture
-      LATEST_COMPLETE_TRADE_YEAR: "2025"
+      TRADE_DATA_PROVIDER: ${TRADE_DATA_PROVIDER:-comtrade}
+      COMTRADE_API_BASE_URL: ${COMTRADE_API_BASE_URL:-https://comtradeapi.un.org/public/v1/preview}
+      COMTRADE_FINAL_API_BASE_URL: ${COMTRADE_FINAL_API_BASE_URL:-https://comtradeapi.un.org/data/v1/get}
+      COMTRADE_API_KEY: ${COMTRADE_API_KEY:-}
+      COMTRADE_CACHE_TTL_DAYS: ${COMTRADE_CACHE_TTL_DAYS:-30}
+      COMTRADE_MAX_CONCURRENCY: ${COMTRADE_MAX_CONCURRENCY:-1}
+      COMTRADE_BATCH_SIZE: ${COMTRADE_BATCH_SIZE:-25}
+      COMTRADE_DATA_DIR: ${COMTRADE_DATA_DIR:-/data/comtrade}
+      PROVIDER_RETRY_ATTEMPTS: ${PROVIDER_RETRY_ATTEMPTS:-3}
+      PROVIDER_RETRY_DELAY_SECONDS: ${PROVIDER_RETRY_DELAY_SECONDS:-1}
+      LATEST_COMPLETE_TRADE_YEAR: ${LATEST_COMPLETE_TRADE_YEAR:-2025}
+      TRADE_DATA_START_YEAR: ${TRADE_DATA_START_YEAR:-2022}
+      TRADE_DATA_END_YEAR: ${TRADE_DATA_END_YEAR:-2026}
       PUBLIC_WEB_URL: https://market.matrix-one.tech
+      WORLD_BANK_API_BASE_URL: ${WORLD_BANK_API_BASE_URL:-https://api.worldbank.org/v2}
+      ENABLE_WORLD_BANK: ${ENABLE_WORLD_BANK:-true}
+      WITS_API_BASE_URL: ${WITS_API_BASE_URL:-https://wits.worldbank.org/API/V1/SDMX/V21}
+      ENABLE_WITS: ${ENABLE_WITS:-true}
+      WTO_API_KEY: ${WTO_API_KEY:-}
+      ENABLE_WTO: ${ENABLE_WTO:-false}
+      SUPPLIER_API_BASE_URL: ${SUPPLIER_API_BASE_URL:-https://supplier.matrix-one.tech}
+      SUPPLIER_API_KEY: ${SUPPLIER_API_KEY:-}
+      SUPPLIER_INTEGRATION_ENABLED: ${SUPPLIER_INTEGRATION_ENABLED:-false}
+      ENABLE_SUPPLIER: ${ENABLE_SUPPLIER:-false}
+      SUPPLIER_API_TIMEOUT_SECONDS: ${SUPPLIER_API_TIMEOUT_SECONDS:-20}
+      MARKETPLACE_PROVIDER_CODE: ${MARKETPLACE_PROVIDER_CODE:-}
+      MARKETPLACE_API_BASE_URL: ${MARKETPLACE_API_BASE_URL:-}
+      MARKETPLACE_API_KEY: ${MARKETPLACE_API_KEY:-}
+      MARKETPLACE_API_TIMEOUT_SECONDS: ${MARKETPLACE_API_TIMEOUT_SECONDS:-20}
+      EBAY_API_BASE_URL: ${EBAY_API_BASE_URL:-https://api.ebay.com}
+      EBAY_OAUTH_URL: ${EBAY_OAUTH_URL:-https://api.ebay.com/identity/v1/oauth2/token}
+      EBAY_CLIENT_ID: ${EBAY_CLIENT_ID:-}
+      EBAY_CLIENT_SECRET: ${EBAY_CLIENT_SECRET:-}
+      TED_API_BASE_URL: ${TED_API_BASE_URL:-https://api.ted.europa.eu}
+      ENABLE_TED: ${ENABLE_TED:-true}
+      ENABLE_GOOGLE_TRENDS: ${ENABLE_GOOGLE_TRENDS:-false}
     ports: ["7891:8000"]
+    volumes:
+      - ./data/comtrade:/data/comtrade
     depends_on:
       postgres:
         condition: service_healthy

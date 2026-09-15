@@ -44,7 +44,7 @@ class NullSupplierNetworkClient:
         capabilities=("summary", "products", "offers", "capabilities"),
         reliability="A",
         enabled=False,
-        health="NOT_CONNECTED",
+        health="AUTH_REQUIRED",
     )
 
     async def get_supply_summary(self, hs_code: str) -> SupplySummary:
@@ -61,8 +61,9 @@ class NullSupplierNetworkClient:
 
 
 class HttpSupplierNetworkClient:
-    def __init__(self, base_url: str, api_key: str) -> None:
+    def __init__(self, base_url: str, api_key: str, *, timeout_seconds: float = 20) -> None:
         self.base_url, self.api_key = base_url.rstrip("/"), api_key
+        self.timeout_seconds = timeout_seconds
         self.metadata = ProviderMetadata(
             code="SUPPLIER_NETWORK",
             name="Matrix One Supplier Network",
@@ -74,7 +75,7 @@ class HttpSupplierNetworkClient:
         )
 
     async def _get(self, path: str) -> dict | list:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.get(
                 f"{self.base_url}{path}",
                 headers={"Authorization": f"Bearer {self.api_key}"},
@@ -85,7 +86,10 @@ class HttpSupplierNetworkClient:
     async def get_supply_summary(self, hs_code: str) -> SupplySummary:
         payload = await self._get(f"/api/v1/supply/summary/{hs_code}")
         assert isinstance(payload, dict)
-        return SupplySummary(**payload, available=True)
+        values = dict(payload)
+        values["hs_code"] = hs_code
+        values["available"] = True
+        return SupplySummary(**values)
 
     async def get_products(self, hs_code: str) -> list[dict]:
         payload = await self._get(f"/api/v1/supply/products?hs_code={hs_code}")

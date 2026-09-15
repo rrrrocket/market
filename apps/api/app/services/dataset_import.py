@@ -158,7 +158,9 @@ def import_records(db: Session, payload: DatasetImportRequest) -> dict:
             _upsert(db, MarketAccessMetric, filters, values)
         else:
             job.status = "PARTIAL"
-            job.error = "Raw snapshot stored; no canonical normalizer is registered for this dataset type."
+            job.error = (
+                "Raw snapshot stored; no canonical normalizer is registered for this dataset type."
+            )
             continue
         imported += 1
 

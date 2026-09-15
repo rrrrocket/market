@@ -47,8 +47,10 @@ class WorldBankProvider:
         client: httpx.AsyncClient | None = None,
         *,
         enabled: bool = True,
+        base_url: str = "https://api.worldbank.org/v2",
     ) -> None:
         self.client = client or httpx.AsyncClient(timeout=30)
+        self.base_url = base_url.rstrip("/")
         self.metadata = ProviderMetadata(
             code="WORLD_BANK",
             name="World Bank Indicators",
@@ -110,6 +112,10 @@ class FixtureMacroProvider:
             return []
         period_year = year or 2025
         return [
-            CountryMetricRecord("TUR", "gdp_usd", 1_320_000_000_000, "USD", period_year, "fixture:world_bank"),
-            CountryMetricRecord("TUR", "population", 87_700_000, "PERSON", period_year, "fixture:world_bank"),
+            CountryMetricRecord(
+                "TUR", "gdp_usd", 1_320_000_000_000, "USD", period_year, "fixture:world_bank"
+            ),
+            CountryMetricRecord(
+                "TUR", "population", 87_700_000, "PERSON", period_year, "fixture:world_bank"
+            ),
         ]

@@ -123,3 +123,56 @@ class DistributionPlanCreate(BaseModel):
     expected_cost: float | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     evidence_ids: list[int] = Field(default_factory=list)
+
+
+class TradeSyncRequest(BaseModel):
+    hs_code: str = Field(pattern=r"^\d{4,10}$")
+    origin_iso3: str = Field(default="CHN", min_length=3, max_length=3)
+    countries: list[str] = Field(default_factory=list)
+    years: list[int] = Field(default_factory=list)
+    monthly_year: int | None = None
+    monthly_months: list[int] = Field(default_factory=list)
+
+
+class CountrySyncRequest(BaseModel):
+    countries: list[str] = Field(default_factory=list)
+    year: int | None = None
+
+
+class TariffSyncRequest(BaseModel):
+    hs_code: str = Field(pattern=r"^\d{6,10}$")
+    origin_iso3: str = Field(default="CHN", min_length=3, max_length=3)
+    countries: list[str] = Field(default_factory=list)
+    year: int | None = None
+
+
+class SupplierSyncRequest(BaseModel):
+    hs_code: str = Field(pattern=r"^\d{4,10}$")
+
+
+class MarketplaceSyncRequest(BaseModel):
+    marketplace: str = Field(min_length=1, max_length=80)
+    country_iso3: str = Field(min_length=3, max_length=3)
+    keyword: str = Field(min_length=1, max_length=300)
+
+
+class ExplicitDemandSyncRequest(BaseModel):
+    hs_code: str | None = Field(default=None, pattern=r"^\d{4,10}$")
+    country_iso3: str | None = Field(default=None, min_length=3, max_length=3)
+    keyword: str = Field(min_length=2, max_length=300)
+
+
+class EconomicsInput(BaseModel):
+    opportunity_id: int
+    currency: str = Field(min_length=3, max_length=3)
+    exw_cost: float = Field(ge=0)
+    freight_cost: float = Field(ge=0)
+    insurance_cost: float = Field(ge=0)
+    tariff_rate: float = Field(ge=0, le=500)
+    platform_commission_rate: float = Field(ge=0, lt=100)
+    fulfillment_cost: float = Field(ge=0)
+    payment_cost: float = Field(ge=0)
+    return_allowance: float = Field(ge=0)
+    target_sale_price: float = Field(gt=0)
+    input_source: dict[str, str] = Field(min_length=1)
+    verified: bool

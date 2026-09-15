@@ -56,7 +56,7 @@ export default function Home() {
 
   return <main className="shell overview-page">
     <section className="overview-head">
-      <div><div className="eyebrow">Global Distribution Intelligence</div><h1>从全球需求证据，走到可执行的市场机会</h1><p>先验证需求，再连接中国供给、成本和风险。缺失的数据保持为空，不用推测填补。</p></div>
+      <div><div className="eyebrow">Global Distribution Intelligence</div><h1>从全球需求证据，走到可执行的市场机会</h1><p>先验证需求，再连接中国供给、成本和风险。</p></div>
       <div className="system-readiness"><span>Live data readiness</span><strong>{liveConnected.length}<small> / {providers.length || "—"}</small></strong><p>{providers.length ? "official providers available" : "checking providers"}</p></div>
     </section>
 

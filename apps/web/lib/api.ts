@@ -9,9 +9,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 export const marketApi = {
   search: (q:string) => request<{hs_code:string;name_en:string;name_zh:string|null;level:number}[]>(`/products/search?q=${encodeURIComponent(q)}`),
+  hsCatalog: (params:{q?:string;status?:string;page?:number;page_size?:number}) => {
+    const query = new URLSearchParams();
+    if (params.q) query.set("q", params.q);
+    if (params.status) query.set("status", params.status);
+    query.set("page", String(params.page || 1));
+    query.set("page_size", String(params.page_size || 50));
+    return request<{summary:{total_hs:number;analyzed_hs:number;remaining_hs:number;coverage_percent:number};page:number;page_size:number;total:number;items:{hs_code:string;name_en:string;name_zh:string|null;status:string;analysis_year:number|null;markets_count:number;top_market_iso3:string|null;top_market_name:string|null;top_score:number|null;coverage:number|null;last_analyzed_at:string|null;error:string|null}[]}>(`/catalog/hs?${query}`);
+  },
+  comtradePipeline: () => request<{status:string;years:number[];complete_through:number;partial_years:number[];total_hs:number;batch_size:number;total_batches:number;downloaded_batches:number;imported_batches:number;download_percent:number;import_percent:number;analyzed_hs:number;analysis_percent:number;records_downloaded:number;bytes_downloaded:number;current_batch:number;current_hs:string|null;no_data_hs:number;failed_hs:number;updated_at:string|null;error:string|null}>("/admin/comtrade-pipeline"),
   createAnalysis: (hs_code:string) => request<{id:string;status:string}>("/analyses", {method:"POST",body:JSON.stringify({hs_code,origin_iso3:"CHN"})}),
   analysis: (id:string) => request<{status:string;error_message:string|null}>(`/analyses/${id}`),
-  opportunities: (hs:string) => request<Opportunity[]>(`/opportunities?hs_code=${hs}&origin_iso3=CHN`),
+  opportunities: (hs:string) => request<Opportunity[]>(`/opportunities?hs_code=${hs}&origin_iso3=CHN&limit=250`),
   detail: (id:number) => request<Detail>(`/opportunities/${id}`),
   history: (hs:string,iso3:string) => request<History[]>(`/trade/history?hs_code=${hs}&country_iso3=${iso3}`),
   suppliers: (hs:string,iso3:string,year:number) => request<{supplier_iso3:string;supplier_name:string;trade_value_usd:number;share:number;rank:number}[]>(`/trade/suppliers?hs_code=${hs}&country_iso3=${iso3}&year=${year}`),

@@ -77,10 +77,23 @@ class ScoreResult:
     stability: float | None
 
 
-def weighted_score(size: float | None, growth: float | None, momentum: float | None, stability: float | None) -> ScoreResult:
+def weighted_score(
+    size: float | None, growth: float | None, momentum: float | None, stability: float | None
+) -> ScoreResult:
     parts = {"size": size, "growth": growth, "momentum": momentum, "stability": stability}
-    available_weight = sum(WEIGHTS[key] for key, value in parts.items() if value is not None and math.isfinite(value))
-    total = sum(WEIGHTS[key] * value for key, value in parts.items() if value is not None and math.isfinite(value)) / available_weight if available_weight else 0
+    available_weight = sum(
+        WEIGHTS[key] for key, value in parts.items() if value is not None and math.isfinite(value)
+    )
+    total = (
+        sum(
+            WEIGHTS[key] * value
+            for key, value in parts.items()
+            if value is not None and math.isfinite(value)
+        )
+        / available_weight
+        if available_weight
+        else 0
+    )
     return ScoreResult(round(total, 2), available_weight, size, growth, momentum, stability)
 
 
@@ -98,11 +111,13 @@ def confidence_score(
 ) -> ConfidenceResult:
     reliability = (
         sum(RELIABILITY_SCORES.get(value, 0) for value in reliabilities) / len(reliabilities)
-        if reliabilities else 0
+        if reliabilities
+        else 0
     )
     freshness_score = (
         sum(FRESHNESS_SCORES.get(value, 0) for value in freshness) / len(freshness)
-        if freshness else 0
+        if freshness
+        else 0
     )
     parts = {
         "coverage": (coverage, 35.0),
@@ -111,7 +126,9 @@ def confidence_score(
         "consistency": (consistency, 15.0),
     }
     available = [(value, weight) for value, weight in parts.values() if value is not None]
-    score = sum(value * weight for value, weight in available) / sum(weight for _, weight in available)
+    score = sum(value * weight for value, weight in available) / sum(
+        weight for _, weight in available
+    )
     rounded = round(score, 2)
     label = "HIGH" if rounded >= 80 else "MEDIUM" if rounded >= 55 else "LOW"
     return ConfidenceResult(rounded, label)
@@ -137,4 +154,7 @@ def distribution_opportunity_score(
         "risk": (risk, 5.0),
     }
     available = [(value, weight) for value, weight in weighted.values() if value is not None]
-    return round(sum(value * weight for value, weight in available) / sum(weight for _, weight in available), 2)
+    return round(
+        sum(value * weight for value, weight in available) / sum(weight for _, weight in available),
+        2,
+    )

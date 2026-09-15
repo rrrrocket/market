@@ -138,7 +138,9 @@ class TradeObservation(Base):
     net_weight_kg: Mapped[float | None] = mapped_column(Float)
     quantity: Mapped[float | None] = mapped_column(Float)
     quantity_unit: Mapped[str | None] = mapped_column(String(40))
-    source_snapshot_id: Mapped[int] = mapped_column(ForeignKey("source_snapshots.id"))
+    source_snapshot_id: Mapped[int] = mapped_column(
+        ForeignKey("source_snapshots.id"), index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
@@ -164,7 +166,11 @@ class MarketMetric(Base):
 
 class MarketOpportunity(Base):
     __tablename__ = "market_opportunities"
-    __table_args__ = (UniqueConstraint("hs_code", "origin_iso3", "destination_iso3", "period_year", "score_version"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "hs_code", "origin_iso3", "destination_iso3", "period_year", "score_version"
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     product_scope_type: Mapped[str] = mapped_column(String(20), default="HS")
     product_scope_id: Mapped[str | None] = mapped_column(String(120))
@@ -291,7 +297,11 @@ class HsClassification(Base):
 
 class HsCorrespondence(Base):
     __tablename__ = "hs_correspondence"
-    __table_args__ = (UniqueConstraint("source_classification", "source_code", "target_classification", "target_code"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "source_classification", "source_code", "target_classification", "target_code"
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     source_classification: Mapped[str] = mapped_column(String(20))
     source_code: Mapped[str] = mapped_column(String(10), index=True)
@@ -340,7 +350,9 @@ class ProductHsMapping(Base):
 
 class ProductRelationship(Base):
     __tablename__ = "product_relationships"
-    __table_args__ = (UniqueConstraint("source_product_id", "target_product_id", "relationship_type"),)
+    __table_args__ = (
+        UniqueConstraint("source_product_id", "target_product_id", "relationship_type"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     source_product_id: Mapped[int] = mapped_column(ForeignKey("product_entities.id"), index=True)
     target_product_id: Mapped[int] = mapped_column(ForeignKey("product_entities.id"), index=True)
@@ -352,7 +364,17 @@ class ProductRelationship(Base):
 
 class DemandSignal(Base):
     __tablename__ = "demand_signals"
-    __table_args__ = (UniqueConstraint("signal_layer", "hs_code", "country_iso3", "channel", "metric_key", "period_start", "source_id"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "signal_layer",
+            "hs_code",
+            "country_iso3",
+            "channel",
+            "metric_key",
+            "period_start",
+            "source_id",
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     signal_layer: Mapped[str] = mapped_column(String(30), index=True)
     product_id: Mapped[int | None] = mapped_column(ForeignKey("product_entities.id"), index=True)
@@ -376,7 +398,9 @@ class DemandSignal(Base):
 
 class MarketplaceSignal(Base):
     __tablename__ = "marketplace_signals"
-    __table_args__ = (UniqueConstraint("marketplace", "country_iso3", "product_ref", "observed_at"),)
+    __table_args__ = (
+        UniqueConstraint("marketplace", "country_iso3", "product_ref", "observed_at"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     marketplace: Mapped[str] = mapped_column(String(80), index=True)
     country_iso3: Mapped[str] = mapped_column(String(3), index=True)
@@ -430,7 +454,9 @@ class ExplicitDemand(Base):
 
 class MarketAccessMetric(Base):
     __tablename__ = "market_access_metrics"
-    __table_args__ = (UniqueConstraint("hs_code", "country_iso3", "origin_iso3", "period_year", "source_id"),)
+    __table_args__ = (
+        UniqueConstraint("hs_code", "country_iso3", "origin_iso3", "period_year", "source_id"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     hs_code: Mapped[str] = mapped_column(String(10), index=True)
     country_iso3: Mapped[str] = mapped_column(String(3), index=True)

@@ -80,7 +80,9 @@ ADDITIONS = {
         sa.Column("observed_type", sa.String(20), nullable=True, server_default="REPORTED"),
         sa.Column("period_start", sa.Date(), nullable=True),
         sa.Column("period_end", sa.Date(), nullable=True),
-        sa.Column("raw_snapshot_id", sa.Integer(), sa.ForeignKey("source_snapshots.id"), nullable=True),
+        sa.Column(
+            "raw_snapshot_id", sa.Integer(), sa.ForeignKey("source_snapshots.id"), nullable=True
+        ),
         sa.Column("confidence", sa.Float(), nullable=True),
     ],
 }
@@ -99,18 +101,31 @@ def upgrade():
                 op.add_column(table_name, column)
 
     op.execute("UPDATE trade_observations SET period_type = 'YEAR' WHERE period_type IS NULL")
-    op.execute("UPDATE market_opportunities SET product_scope_type = 'HS', product_scope_id = hs_code WHERE product_scope_type IS NULL OR product_scope_id IS NULL")
-    op.execute("UPDATE evidence SET source_reliability = 'A', observed_type = 'REPORTED' WHERE source_reliability IS NULL OR observed_type IS NULL")
+    op.execute(
+        "UPDATE market_opportunities SET product_scope_type = 'HS', product_scope_id = hs_code WHERE product_scope_type IS NULL OR product_scope_id IS NULL"
+    )
+    op.execute(
+        "UPDATE evidence SET source_reliability = 'A', observed_type = 'REPORTED' WHERE source_reliability IS NULL OR observed_type IS NULL"
+    )
 
     uniques = sa.inspect(bind).get_unique_constraints("trade_observations")
     target_columns = {
-        "classification", "hs_code", "period_type", "period_start",
-        "reporter_iso3", "partner_iso3", "flow",
+        "classification",
+        "hs_code",
+        "period_type",
+        "period_start",
+        "reporter_iso3",
+        "partner_iso3",
+        "flow",
     }
     if not any(set(item["column_names"]) == target_columns for item in uniques):
         old_columns = {
-            "classification", "hs_code", "period_year",
-            "reporter_iso3", "partner_iso3", "flow",
+            "classification",
+            "hs_code",
+            "period_year",
+            "reporter_iso3",
+            "partner_iso3",
+            "flow",
         }
         old = next((item for item in uniques if set(item["column_names"]) == old_columns), None)
         with op.batch_alter_table("trade_observations") as batch:
@@ -118,7 +133,15 @@ def upgrade():
                 batch.drop_constraint(old["name"], type_="unique")
             batch.create_unique_constraint(
                 "uq_trade_observation_period",
-                ["classification", "hs_code", "period_type", "period_start", "reporter_iso3", "partner_iso3", "flow"],
+                [
+                    "classification",
+                    "hs_code",
+                    "period_type",
+                    "period_start",
+                    "reporter_iso3",
+                    "partner_iso3",
+                    "flow",
+                ],
             )
 
 

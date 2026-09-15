@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Protocol
+from xml.etree import ElementTree
 
 import httpx
 
 from app.integrations.base import ProviderMetadata
+from app.integrations.country_codes import iso3_to_m49
 
 
 @dataclass(frozen=True)
@@ -28,9 +30,7 @@ class TariffProvider(Protocol):
         self, hs_code: str, reporter: str, partner: str, year: int
     ) -> list[TariffRecord]: ...
 
-    async def get_ntm(
-        self, hs_code: str, reporter: str, year: int
-    ) -> list[dict]: ...
+    async def get_ntm(self, hs_code: str, reporter: str, year: int) -> list[dict]: ...
 
 
 class NullTariffProvider:
@@ -44,7 +44,9 @@ class NullTariffProvider:
         health="NOT_CONNECTED",
     )
 
-    async def get_tariff(self, hs_code: str, reporter: str, partner: str, year: int) -> list[TariffRecord]:
+    async def get_tariff(
+        self, hs_code: str, reporter: str, partner: str, year: int
+    ) -> list[TariffRecord]:
         return []
 
     async def get_ntm(self, hs_code: str, reporter: str, year: int) -> list[dict]:
@@ -54,8 +56,15 @@ class NullTariffProvider:
 class WitsTariffProvider:
     base_url = "https://wits.worldbank.org/API/V1/SDMX/V21"
 
-    def __init__(self, client: httpx.AsyncClient | None = None, *, enabled: bool = False) -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient | None = None,
+        *,
+        enabled: bool = False,
+        base_url: str = "https://wits.worldbank.org/API/V1/SDMX/V21",
+    ) -> None:
         self.client = client or httpx.AsyncClient(timeout=45)
+        self.base_url = base_url.rstrip("/")
         self.metadata = ProviderMetadata(
             code="WITS_TRAINS",
             name="WITS / UNCTAD TRAINS",
@@ -66,35 +75,78 @@ class WitsTariffProvider:
             health="AVAILABLE" if enabled else "DISABLED",
         )
 
-    async def get_tariff(self, hs_code: str, reporter: str, partner: str, year: int) -> list[TariffRecord]:
+    async def get_tariff(
+        self, hs_code: str, reporter: str, partner: str, year: int
+    ) -> list[TariffRecord]:
         if not self.metadata.enabled:
             return []
-        url = (
-            f"{self.base_url}/datasource/TRN/reporter/{reporter}/partner/{partner}"
-            f"/product/{hs_code}/year/{year}/datatype/reported"
+        mfn = await self._fetch_series(hs_code, reporter, "000", year)
+        preferential = await self._fetch_series(
+            hs_code, reporter, iso3_to_m49(partner).zfill(3), year
         )
-        response = await self.client.get(url, params={"format": "JSON"})
-        response.raise_for_status()
-        payload = response.json()
-        series = payload.get("dataSets", [{}])[0].get("series", {})
-        records: list[TariffRecord] = []
-        for value in series.values():
-            observations = value.get("observations", {})
-            tariff = next(iter(observations.values()), [None])[0] if observations else None
-            records.append(
-                TariffRecord(
-                    hs_code=hs_code,
-                    reporter_iso3=reporter.upper(),
-                    partner_code=partner.upper(),
-                    year=year,
-                    mfn_tariff=float(tariff) if tariff is not None else None,
-                    preferential_tariff=None,
-                    tariff_type=value.get("TARIFFTYPE"),
-                    nomenclature=value.get("NOMENCODE"),
-                    source_identifier=url,
-                )
+        if not mfn and not preferential:
+            return []
+        mfn_value = next(
+            (row["value"] for row in mfn if row.get("tariff_type") == "MFN"),
+            mfn[0]["value"] if mfn else None,
+        )
+        preferential_value = next(
+            (row["value"] for row in preferential if row.get("tariff_type") == "PREF"),
+            preferential[0]["value"] if preferential else None,
+        )
+        row = next(iter(preferential or mfn))
+        return [
+            TariffRecord(
+                hs_code=hs_code,
+                reporter_iso3=reporter.upper(),
+                partner_code=partner.upper(),
+                year=year,
+                mfn_tariff=mfn_value,
+                preferential_tariff=preferential_value,
+                tariff_type="PREF" if preferential_value is not None else "MFN",
+                nomenclature=row.get("nomenclature"),
+                source_identifier=row["source_identifier"],
             )
-        return records
+        ]
+
+    async def _fetch_series(
+        self, hs_code: str, reporter: str, partner_m49: str, year: int
+    ) -> list[dict]:
+        reporter_m49 = iso3_to_m49(reporter).zfill(3)
+        key = f"A.{reporter_m49}.{partner_m49}.{hs_code}.reported"
+        url = f"{self.base_url}/rest/data/DF_WITS_Tariff_TRAINS/{key}"
+        response = await self.client.get(
+            url,
+            params={"startPeriod": year, "endPeriod": year, "detail": "Full"},
+            headers={"Accept": "application/vnd.sdmx.genericdata+xml;version=2.1"},
+        )
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
+        root = ElementTree.fromstring(response.content)
+        rows: list[dict] = []
+        for series in root.findall(".//{*}Series"):
+            attributes = {
+                value.attrib.get("id"): value.attrib.get("value")
+                for value in series.findall(".//{*}Value")
+            }
+            for observation in series.findall("./{*}Obs"):
+                value_node = observation.find("./{*}ObsValue")
+                period_node = observation.find("./{*}ObsDimension")
+                if value_node is None or value_node.attrib.get("value") is None:
+                    continue
+                rows.append(
+                    {
+                        "value": float(value_node.attrib["value"]),
+                        "year": int(period_node.attrib.get("value", year))
+                        if period_node is not None
+                        else year,
+                        "tariff_type": attributes.get("TARIFFTYPE"),
+                        "nomenclature": attributes.get("NOMENCODE"),
+                        "source_identifier": url,
+                    }
+                )
+        return rows
 
     async def get_ntm(self, hs_code: str, reporter: str, year: int) -> list[dict]:
         return []
@@ -127,7 +179,13 @@ class FixtureTariffProvider(NullTariffProvider):
         health="TEST_DATA",
     )
 
-    async def get_tariff(self, hs_code: str, reporter: str, partner: str, year: int) -> list[TariffRecord]:
+    async def get_tariff(
+        self, hs_code: str, reporter: str, partner: str, year: int
+    ) -> list[TariffRecord]:
         if hs_code != "902620" or reporter.upper() != "TUR":
             return []
-        return [TariffRecord(hs_code, "TUR", partner.upper(), year, 4.2, None, "MFN", "H6", "fixture:tariff")]
+        return [
+            TariffRecord(
+                hs_code, "TUR", partner.upper(), year, 4.2, None, "MFN", "H6", "fixture:tariff"
+            )
+        ]

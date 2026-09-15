@@ -15,6 +15,7 @@ export default function RootLayout({children}:{children:React.ReactNode}) {
       <nav className="navlinks" aria-label="Primary navigation">
         <Link href="/">Overview</Link>
         <Link href="/explore">Discover</Link>
+        <Link href="/intelligence">HS Intelligence</Link>
         <Link href="/intelligence/watchlist">Watchlist</Link>
         <Link href="/admin/data-quality">Data Quality</Link>
         <Link href="/methodology">Methodology</Link>

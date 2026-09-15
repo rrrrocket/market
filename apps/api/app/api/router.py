@@ -59,6 +59,10 @@ from app.schemas.api import (
 )
 from app.services.analysis import execute_analysis
 from app.services.bulk_pipeline import pipeline_status
+from app.services.country_opportunity import (
+    country_opportunity_catalog,
+    country_opportunity_detail,
+)
 from app.services.dataset_import import import_records, parse_dataset_file
 from app.services.opportunity import calculate_economics, recompute_distribution_opportunity
 from app.services.provider_sync import (
@@ -125,6 +129,56 @@ def countries(db: Session = Depends(get_db)):
     return db.scalars(
         select(Country).where(Country.is_active.is_(True)).order_by(Country.name_en)
     ).all()
+
+
+@router.get("/country-opportunities")
+def country_opportunities(
+    year: int | None = None,
+    origin_iso3: str = "CHN",
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    return country_opportunity_catalog(
+        db,
+        year=year or settings.latest_complete_year,
+        origin_iso3=origin_iso3,
+    )
+
+
+@router.get("/country-opportunities/{country_iso3}")
+def country_opportunity(
+    country_iso3: str,
+    year: int | None = None,
+    origin_iso3: str = "CHN",
+    sort: str = Query(
+        default="opportunity", pattern=r"^(opportunity|china_import|growth|headroom)$"
+    ),
+    q: str | None = Query(default=None, max_length=100),
+    opportunity_type: str | None = Query(
+        default=None,
+        pattern=r"^(FAST_GROWTH|WHITE_SPACE|SCALE_LEADER|EMERGING|WATCH)$",
+    ),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    result = country_opportunity_detail(
+        db,
+        country_iso3=country_iso3,
+        year=year,
+        max_year=settings.latest_complete_year,
+        min_year=settings.trade_data_start_year,
+        origin_iso3=origin_iso3,
+        sort=sort,
+        q=q,
+        opportunity_type=opportunity_type,
+        page=page,
+        page_size=page_size,
+    )
+    if result is None:
+        raise HTTPException(404, "Country opportunity analysis not found")
+    return result
 
 
 @router.get("/catalog/hs")

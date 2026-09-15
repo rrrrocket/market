@@ -68,6 +68,39 @@ def test_analysis_rerun_does_not_duplicate_opportunities(client):
     assert count1 == count2
 
 
+def test_country_opportunity_analysis(client):
+    complete_analysis(client)
+    catalog_response = client.get("/api/v1/country-opportunities")
+    assert catalog_response.status_code == 200
+    catalog = catalog_response.json()
+    assert catalog["year"] == 2025
+    assert catalog["origin_iso3"] == "CHN"
+    assert catalog["countries"] >= 10
+    assert catalog["items"][0]["rank"] == 1
+    assert catalog["items"][0]["china_import_value_usd"] >= catalog["items"][-1][
+        "china_import_value_usd"
+    ]
+
+    iso3 = catalog["items"][0]["iso3"]
+    detail_response = client.get(f"/api/v1/country-opportunities/{iso3}")
+    assert detail_response.status_code == 200
+    detail = detail_response.json()
+    assert detail["country"]["iso3"] == iso3
+    assert detail["summary"]["analyzed_hs_count"] >= 1
+    assert detail["history"]
+    assert detail["products"]
+    product = detail["products"][0]
+    assert product["opportunity_rank"] == 1
+    assert product["opportunity_type"] in {
+        "FAST_GROWTH",
+        "WHITE_SPACE",
+        "SCALE_LEADER",
+        "EMERGING",
+        "WATCH",
+    }
+    assert detail["methodology"]["weights"]["china_import_scale"] == 30
+
+
 def test_data_quality_watchlist_and_provider_surfaces(client):
     providers = client.get("/api/v1/integrations/providers")
     assert providers.status_code == 200

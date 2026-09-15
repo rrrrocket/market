@@ -57,6 +57,12 @@ Comtrade preview access may work without a key for small requests; configure `CO
 
 The preview Comtrade endpoint is capped at 500 records and is not suitable for building all 5,613 analyses. Configure `COMTRADE_API_KEY`; authenticated calls automatically use `COMTRADE_FINAL_API_BASE_URL` (`https://comtradeapi.un.org/data/v1/get`) and the official `subscription-key` parameter. Until real observations have been processed, catalog entries remain `NOT ANALYZED` instead of displaying fabricated results.
 
+## Country opportunity analysis
+
+`GET /api/v1/country-opportunities` aggregates HS observations by reporting country/region. It prefers the configured latest complete year and falls back to each reporter's latest available year; every row exposes the year actually used. `GET /api/v1/country-opportunities/{iso3}` returns annual imports from China, total imports, China share, HS import rank, growth trends, and paginated product opportunities. The corresponding web views are `/countries` and `/countries/{iso3}`.
+
+The country opportunity score is derived only from reported data: 30% China import scale, 25% three-year CAGR, 15% latest-year momentum, 20% remaining market headroom, and 10% stability. Missing inputs are excluded and the available weights are returned as score coverage. The score is a screening rank, not a forecast of future sales.
+
 ## Supplier contract
 
 Configure `SUPPLIER_API_BASE_URL` and `SUPPLIER_API_KEY`. Market calls `GET /api/v1/supply/summary/{hs_code}` with a bearer token. The JSON response may contain `supplier_count`, `product_count`, `active_offer_count`, `min_price`, `median_price`, `currency`, MOQ, stock, lead-time, certification, dropship, delivery, and quality fields. Omitted values stay null; no value is inferred.

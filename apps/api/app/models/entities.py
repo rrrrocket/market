@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -123,6 +124,14 @@ class TradeObservation(Base):
             "flow",
             name="uq_trade_observation_period",
         ),
+        Index(
+            "ix_trade_observations_country_partner_period",
+            "reporter_iso3",
+            "partner_iso3",
+            "flow",
+            "period_type",
+            "period_year",
+        ),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     classification: Mapped[str] = mapped_column(String(20), default="HS2022")
@@ -146,7 +155,15 @@ class TradeObservation(Base):
 
 class MarketMetric(Base):
     __tablename__ = "market_metrics"
-    __table_args__ = (UniqueConstraint("hs_code", "country_iso3", "origin_iso3", "period_year"),)
+    __table_args__ = (
+        UniqueConstraint("hs_code", "country_iso3", "origin_iso3", "period_year"),
+        Index(
+            "ix_market_metrics_origin_year_country",
+            "origin_iso3",
+            "period_year",
+            "country_iso3",
+        ),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     hs_code: Mapped[str] = mapped_column(String(10), index=True)
     country_iso3: Mapped[str] = mapped_column(String(3), index=True)

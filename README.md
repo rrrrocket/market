@@ -20,6 +20,8 @@ The system flow is: provider registry → raw snapshot → canonical observation
 
 `/intelligence` adds the local UN Comtrade pipeline view. It reports download, import, and analysis progress before exposing completed HS results in the catalog.
 
+`/countries` turns the same verified observations into a country-first opportunity view. Each country/region shows its reported imports from China, China share, year-on-year change, three-year CAGR, and imported-HS coverage. It prefers the global latest complete year and falls back to each reporter's latest available year so late-reporting countries remain visible. The country detail ranks six-digit HS products by either China import value or an explainable opportunity score combining scale, growth, momentum, remaining market headroom, and stability.
+
 ## Docker deployment
 
 Docker is the only supported deployment mode on every machine. There are no development/production Compose variants or machine-specific runtime steps.

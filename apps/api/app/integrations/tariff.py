@@ -80,27 +80,30 @@ class WitsTariffProvider:
     ) -> list[TariffRecord]:
         if not self.metadata.enabled:
             return []
-        mfn = await self._fetch_series(hs_code, reporter, "000", year)
+        start_year = max(2000, year - 3)
+        mfn = await self._fetch_series(hs_code, reporter, "000", start_year, year)
         preferential = await self._fetch_series(
-            hs_code, reporter, iso3_to_m49(partner).zfill(3), year
+            hs_code, reporter, iso3_to_m49(partner).zfill(3), start_year, year
         )
         if not mfn and not preferential:
             return []
-        mfn_value = next(
-            (row["value"] for row in mfn if row.get("tariff_type") == "MFN"),
-            mfn[0]["value"] if mfn else None,
+        mfn_row = next(
+            (row for row in mfn if row.get("tariff_type") == "MFN"),
+            mfn[0] if mfn else None,
         )
-        preferential_value = next(
-            (row["value"] for row in preferential if row.get("tariff_type") == "PREF"),
-            preferential[0]["value"] if preferential else None,
+        preferential_row = next(
+            (row for row in preferential if row.get("tariff_type") == "PREF"),
+            preferential[0] if preferential else None,
         )
-        row = next(iter(preferential or mfn))
+        mfn_value = mfn_row["value"] if mfn_row else None
+        preferential_value = preferential_row["value"] if preferential_row else None
+        row = preferential_row or mfn_row
         return [
             TariffRecord(
                 hs_code=hs_code,
                 reporter_iso3=reporter.upper(),
                 partner_code=partner.upper(),
-                year=year,
+                year=row["year"],
                 mfn_tariff=mfn_value,
                 preferential_tariff=preferential_value,
                 tariff_type="PREF" if preferential_value is not None else "MFN",
@@ -110,14 +113,19 @@ class WitsTariffProvider:
         ]
 
     async def _fetch_series(
-        self, hs_code: str, reporter: str, partner_m49: str, year: int
+        self,
+        hs_code: str,
+        reporter: str,
+        partner_m49: str,
+        start_year: int,
+        end_year: int,
     ) -> list[dict]:
         reporter_m49 = iso3_to_m49(reporter).zfill(3)
         key = f"A.{reporter_m49}.{partner_m49}.{hs_code}.reported"
-        url = f"{self.base_url}/rest/data/DF_WITS_Tariff_TRAINS/{key}"
+        url = f"{self.base_url}/rest/data/DF_WITS_Tariff_TRAINS/{key}/"
         response = await self.client.get(
             url,
-            params={"startPeriod": year, "endPeriod": year, "detail": "Full"},
+            params={"startPeriod": start_year, "endPeriod": end_year, "detail": "Full"},
             headers={"Accept": "application/vnd.sdmx.genericdata+xml;version=2.1"},
         )
         if response.status_code == 404:
@@ -138,15 +146,15 @@ class WitsTariffProvider:
                 rows.append(
                     {
                         "value": float(value_node.attrib["value"]),
-                        "year": int(period_node.attrib.get("value", year))
+                        "year": int(period_node.attrib.get("value", end_year))
                         if period_node is not None
-                        else year,
+                        else end_year,
                         "tariff_type": attributes.get("TARIFFTYPE"),
                         "nomenclature": attributes.get("NOMENCODE"),
                         "source_identifier": url,
                     }
                 )
-        return rows
+        return sorted(rows, key=lambda row: row["year"], reverse=True)
 
     async def get_ntm(self, hs_code: str, reporter: str, year: int) -> list[dict]:
         return []

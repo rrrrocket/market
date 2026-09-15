@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function CatalogPage() {
+export default function ProductIndexPage() {
   redirect("/intelligence");
 }

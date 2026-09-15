@@ -21,6 +21,7 @@ export type CountryOpportunityDetail = {
   summary:{china_import_value_usd:number|null;total_import_value_usd:number|null;china_share:number|null;yoy_growth:number|null;cagr_3y:number|null;analyzed_hs_count:number;imported_hs_count:number};
   history:{year:number;china_import_value_usd:number|null;total_import_value_usd:number|null;china_share:number|null}[];
   products:CountryOpportunityProduct[];
+  macro:Record<string,{value:number|null;value_text:string|null;unit:string|null;year:number;observed_type:string}>;
   product_pagination:{page:number;page_size:number;total:number;sort:string;q:string|null;opportunity_type:string|null};
   methodology:{score_version:string;weights:Record<string,number>};
 };
@@ -58,6 +59,9 @@ export const marketApi = {
   detail: (id:number) => request<Detail>(`/opportunities/${id}`),
   history: (hs:string,iso3:string) => request<History[]>(`/trade/history?hs_code=${hs}&country_iso3=${iso3}`),
   suppliers: (hs:string,iso3:string,year:number) => request<{supplier_iso3:string;supplier_name:string;trade_value_usd:number;share:number;rank:number}[]>(`/trade/suppliers?hs_code=${hs}&country_iso3=${iso3}&year=${year}`),
+  syncWorldBank: (countries:string[] = []) => request<{status:string;rows_imported:number;countries_with_data:number}>("/admin/sync/world-bank", {method:"POST",body:JSON.stringify({countries})}),
+  syncWits: (hs_code:string,country_iso3:string,year:number) => request<{status:string;rows_imported:number}>("/admin/sync/wits", {method:"POST",body:JSON.stringify({hs_code,origin_iso3:"CHN",countries:[country_iso3],year})}),
+  syncTed: (hs_code:string,country_iso3:string,keyword:string) => request<{status:string;rows_imported:number}>("/admin/sync/explicit-demand", {method:"POST",body:JSON.stringify({hs_code,country_iso3,keyword})}),
   admin: () => request<{source_status:string;last_sync:string|null;analysis_runs:{id:string;hs_code:string;status:string;started_at:string|null;error:string|null}[];cached_products:number;trade_records:number}>("/admin/data")
   ,dataQuality: () => request<DataQuality>("/admin/data-quality")
   ,providers: () => request<{code:string;name:string;category:string;capabilities:string[];reliability:string;enabled:boolean;health:string}[]>("/integrations/providers")

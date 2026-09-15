@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Country, HsProduct, SourceSnapshot, TradeObservation
+from app.models import Country, CountryMetric, HsProduct, SourceSnapshot, TradeObservation
 from app.scoring.engine import (
     cagr,
     coefficient_of_variation,
@@ -406,6 +406,22 @@ def country_opportunity_detail(
         )
     latest_china = annual[origin_iso3].get(target_year)
     latest_total = annual["WLD"].get(target_year)
+    macro_metrics: dict[str, dict[str, Any]] = {}
+    for metric in db.scalars(
+        select(CountryMetric)
+        .where(CountryMetric.country_iso3 == country_iso3)
+        .order_by(CountryMetric.period_year.desc(), CountryMetric.metric_key)
+    ):
+        macro_metrics.setdefault(
+            metric.metric_key,
+            {
+                "value": metric.value_numeric,
+                "value_text": metric.value_text,
+                "unit": metric.unit,
+                "year": metric.period_year,
+                "observed_type": metric.observed_type,
+            },
+        )
     return {
         "country": {
             "iso3": country.iso3,
@@ -429,6 +445,7 @@ def country_opportunity_detail(
         },
         "history": annual_history,
         "products": paginated_products,
+        "macro": macro_metrics,
         "product_pagination": {
             "page": page,
             "page_size": page_size,

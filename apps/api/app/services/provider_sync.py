@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+import math
+from collections import defaultdict
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +19,9 @@ from app.models import (
     Country,
     DataJob,
     DataSource,
+    DemandSignal,
     ExplicitDemand,
+    MarketOpportunity,
     MarketplaceSignal,
     SourceSnapshot,
 )
@@ -153,10 +157,16 @@ async def sync_world_bank(db: Session, settings: Settings, request: CountrySyncR
         enabled=True,
         base_url=settings.world_bank_api_base_url,
     )
-    batches = await asyncio.gather(
-        *(provider.get_country_metrics(country, request.year) for country in countries)
+    if request.year is not None:
+        start_year = end_year = request.year
+    else:
+        start_year = settings.trade_data_start_year
+        end_year = settings.latest_complete_year
+    records = await provider.get_countries_metrics(
+        countries,
+        start_year=start_year,
+        end_year=end_year,
     )
-    records = [record for batch in batches for record in batch]
     if not records:
         raise ValueError("World Bank returned no metrics for the requested scope")
     _mark_source_enabled(db, "WORLD_BANK")
@@ -180,6 +190,9 @@ async def sync_world_bank(db: Session, settings: Settings, request: CountrySyncR
         ),
     )
     result["countries"] = len(countries)
+    result["countries_with_data"] = len({record.country_iso3 for record in records})
+    result["period_start"] = start_year
+    result["period_end"] = end_year
     return result
 
 
@@ -429,6 +442,56 @@ async def sync_explicit_demand(
             setattr(row, field, value)
         row.source_id = source.id
         row.retrieved_at = datetime.now(UTC)
+    grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for record in records:
+        if record.get("hs_code") and record.get("buyer_country_iso3") not in {None, "UNK"}:
+            grouped[(record["hs_code"], record["buyer_country_iso3"])].append(record)
+    today = date.today()
+    for (hs_code, country_iso3), matched in grouped.items():
+        normalized = round(min(100.0, 25 * math.log1p(len(matched))), 2)
+        signal = db.scalar(
+            select(DemandSignal).where(
+                DemandSignal.signal_layer == "EXPLICIT",
+                DemandSignal.hs_code == hs_code,
+                DemandSignal.country_iso3 == country_iso3,
+                DemandSignal.channel == "PUBLIC_PROCUREMENT",
+                DemandSignal.metric_key == "active_tender_count",
+                DemandSignal.period_start == today,
+                DemandSignal.source_id == source.id,
+            )
+        )
+        values = {
+            "value_numeric": float(len(matched)),
+            "value_text": f"{len(matched)} matched active TED notices",
+            "normalized_value": normalized,
+            "period_end": today,
+            "observed_type": "OBSERVED",
+            "source_reliability": "A_MINUS",
+            "freshness_status": "FRESH",
+            "confidence": 85.0,
+        }
+        if signal is None:
+            signal = DemandSignal(
+                signal_layer="EXPLICIT",
+                hs_code=hs_code,
+                country_iso3=country_iso3,
+                channel="PUBLIC_PROCUREMENT",
+                metric_key="active_tender_count",
+                period_start=today,
+                source_id=source.id,
+                **values,
+            )
+            db.add(signal)
+        else:
+            for key, value in values.items():
+                setattr(signal, key, value)
+        for opportunity in db.scalars(
+            select(MarketOpportunity).where(
+                MarketOpportunity.hs_code == hs_code,
+                MarketOpportunity.destination_iso3 == country_iso3,
+            )
+        ):
+            opportunity.explicit_demand_score = normalized
     now = datetime.now(UTC)
     source.enabled = True
     source.status = "READY"

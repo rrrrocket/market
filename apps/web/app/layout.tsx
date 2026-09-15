@@ -14,7 +14,6 @@ export default function RootLayout({children}:{children:React.ReactNode}) {
       <Link href="/" className="brand"><span className="brandmark">M</span><span>Matrix One <span style={{fontWeight:500,color:"#738197"}}>Market</span></span></Link>
       <nav className="navlinks" aria-label="Primary navigation">
         <Link href="/">Overview</Link>
-        <Link href="/explore">Discover</Link>
         <Link href="/intelligence">HS Intelligence</Link>
         <Link href="/countries">Country Opportunities</Link>
         <Link href="/intelligence/watchlist">Watchlist</Link>

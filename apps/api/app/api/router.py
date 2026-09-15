@@ -346,6 +346,14 @@ def analysis_status(analysis_id: str, db: Session = Depends(get_db)):
 
 
 def opportunity_query(hs_code: str, origin_iso3: str):
+    latest_year = (
+        select(func.max(MarketOpportunity.period_year))
+        .where(
+            MarketOpportunity.hs_code == hs_code,
+            MarketOpportunity.origin_iso3 == origin_iso3,
+        )
+        .scalar_subquery()
+    )
     return (
         select(MarketOpportunity, MarketMetric, Country)
         .join(
@@ -356,7 +364,11 @@ def opportunity_query(hs_code: str, origin_iso3: str):
             & (MarketMetric.period_year == MarketOpportunity.period_year),
         )
         .join(Country, Country.iso3 == MarketOpportunity.destination_iso3)
-        .where(MarketOpportunity.hs_code == hs_code, MarketOpportunity.origin_iso3 == origin_iso3)
+        .where(
+            MarketOpportunity.hs_code == hs_code,
+            MarketOpportunity.origin_iso3 == origin_iso3,
+            MarketOpportunity.period_year == latest_year,
+        )
     )
 
 
@@ -467,6 +479,40 @@ def opportunity_detail(opportunity_id: int, db: Session = Depends(get_db)):
         .where(DecisionRecommendation.opportunity_id == opportunity_id)
         .order_by(DecisionRecommendation.created_at.desc())
     ).all()
+    access = db.scalar(
+        select(MarketAccessMetric)
+        .where(
+            MarketAccessMetric.hs_code == opp.hs_code,
+            MarketAccessMetric.country_iso3 == opp.destination_iso3,
+            MarketAccessMetric.origin_iso3 == opp.origin_iso3,
+        )
+        .order_by(MarketAccessMetric.period_year.desc())
+    )
+    macro: dict[str, dict] = {}
+    for metric in db.scalars(
+        select(CountryMetric)
+        .where(CountryMetric.country_iso3 == opp.destination_iso3)
+        .order_by(CountryMetric.period_year.desc(), CountryMetric.metric_key)
+    ):
+        macro.setdefault(
+            metric.metric_key,
+            {
+                "value": metric.value_numeric,
+                "value_text": metric.value_text,
+                "unit": metric.unit,
+                "year": metric.period_year,
+                "observed_type": metric.observed_type,
+            },
+        )
+    tenders = db.scalars(
+        select(ExplicitDemand)
+        .where(
+            ExplicitDemand.hs_code == opp.hs_code,
+            ExplicitDemand.buyer_country_iso3 == opp.destination_iso3,
+        )
+        .order_by(ExplicitDemand.published_at.desc())
+        .limit(20)
+    ).all()
     history = trade_history(opp.hs_code, opp.destination_iso3, opp.origin_iso3, db)
     reasons = []
     if opp.size_score >= 90:
@@ -542,6 +588,29 @@ def opportunity_detail(opportunity_id: int, db: Session = Depends(get_db)):
         "score_version": opp.score_version,
         "history": [h.model_dump() for h in history],
         "signals": signal_layers,
+        "macro": macro,
+        "market_access": {
+            column.name: getattr(access, column.name)
+            for column in MarketAccessMetric.__table__.columns
+            if column.name not in {"id", "source_id"}
+        }
+        if access
+        else None,
+        "explicit_demands": [
+            {
+                "id": tender.id,
+                "buyer_name": tender.buyer_name,
+                "title": tender.title,
+                "budget_max": tender.budget_max,
+                "currency": tender.currency,
+                "deadline": tender.deadline,
+                "published_at": tender.published_at,
+                "source_url": tender.source_url,
+                "status": tender.status,
+                "observed_type": tender.observed_type,
+            }
+            for tender in tenders
+        ],
         "supply": {
             "status": "CONNECTED",
             **{
@@ -1231,6 +1300,39 @@ def data_quality(db: Session = Depends(get_db), settings: Settings = Depends(get
     if settings.trade_data_provider.lower() not in {"fixture", "test"}:
         reliability_query = reliability_query.where(DataSource.code != "COMTRADE_FIXTURE")
     reliability = db.execute(reliability_query.group_by(DataSource.reliability)).all()
+    source_ids = {source.id: source.code for source in sources}
+    record_counts = {source.code: 0 for source in sources}
+
+    def add_counts(model) -> None:
+        for source_id, count in db.execute(
+            select(model.source_id, func.count()).group_by(model.source_id)
+        ):
+            code = source_ids.get(source_id)
+            if code:
+                record_counts[code] = record_counts.get(code, 0) + int(count)
+
+    for model in (CountryMetric, MarketAccessMetric, ExplicitDemand, MarketplaceSignal, SupplyFit):
+        add_counts(model)
+    for source_id, count in db.execute(
+        select(SourceSnapshot.source_id, func.count(TradeObservation.id))
+        .join(TradeObservation, TradeObservation.source_snapshot_id == SourceSnapshot.id)
+        .group_by(SourceSnapshot.source_id)
+    ):
+        code = source_ids.get(source_id)
+        if code:
+            record_counts[code] = record_counts.get(code, 0) + int(count)
+
+    def provider_state(source: DataSource) -> tuple[str, str]:
+        connector_status = providers.get(source.code, {}).get("health", source.status)
+        count = record_counts.get(source.code, 0)
+        if count > 0:
+            return connector_status, "DATA_READY"
+        if source.last_success_at:
+            return connector_status, "SYNCED_EMPTY"
+        if connector_status == "AVAILABLE":
+            return connector_status, "CONNECTOR_AVAILABLE"
+        return connector_status, connector_status
+
     return {
         "generated_at": datetime.now(UTC),
         "provider_health": [
@@ -1239,7 +1341,9 @@ def data_quality(db: Session = Depends(get_db), settings: Settings = Depends(get
                 "name": providers.get(source.code, {}).get("name", source.name),
                 "category": source.category,
                 "enabled": providers.get(source.code, {}).get("enabled", source.enabled),
-                "status": providers.get(source.code, {}).get("health", source.status),
+                "connector_status": provider_state(source)[0],
+                "status": provider_state(source)[1],
+                "record_count": record_counts.get(source.code, 0),
                 "reliability": source.reliability,
                 "last_success_at": source.last_success_at,
                 "last_failure_at": source.last_failure_at,
@@ -1253,6 +1357,7 @@ def data_quality(db: Session = Depends(get_db), settings: Settings = Depends(get
             "demand_signals": db.scalar(select(func.count()).select_from(DemandSignal)) or 0,
             "tariff_records": db.scalar(select(func.count()).select_from(MarketAccessMetric)) or 0,
             "macro_records": db.scalar(select(func.count()).select_from(CountryMetric)) or 0,
+            "tender_records": db.scalar(select(func.count()).select_from(ExplicitDemand)) or 0,
             "opportunities": db.scalar(select(func.count()).select_from(MarketOpportunity)) or 0,
         },
         "stale_sources": [source.code for source in sources if source.status == "STALE"],

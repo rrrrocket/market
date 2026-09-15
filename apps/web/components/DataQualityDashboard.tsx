@@ -7,8 +7,8 @@ import { marketApi } from "@/lib/api";
 import { DataQuality } from "@/types/market";
 
 function statusClass(status: string) {
-  if (["READY", "AVAILABLE", "TEST_DATA"].includes(status)) return "quality-good";
-  if (["DISABLED", "NOT_CONNECTED", "AUTH_REQUIRED"].includes(status)) return "quality-neutral";
+  if (["READY", "DATA_READY", "TEST_DATA"].includes(status)) return "quality-good";
+  if (["DISABLED", "NOT_CONNECTED", "AUTH_REQUIRED", "CONNECTOR_AVAILABLE"].includes(status)) return "quality-neutral";
   return "quality-warn";
 }
 
@@ -34,6 +34,7 @@ export default function DataQualityDashboard() {
     ["Demand signals", quality.coverage.demand_signals ?? 0],
     ["Tariff records", quality.coverage.tariff_records ?? 0],
     ["Macro records", quality.coverage.macro_records ?? 0],
+    ["Tender records", quality.coverage.tender_records ?? 0],
     ["Opportunities", quality.coverage.opportunities ?? 0],
   ];
 
@@ -69,7 +70,7 @@ export default function DataQualityDashboard() {
         <div className="panel-title"><h2><Activity size={17}/> Provider health</h2><span>{quality.provider_health.length} registered</span></div>
         <div className="provider-list">
           {quality.provider_health.map((provider) => <div className="provider-row" key={provider.code}>
-            <div><strong>{provider.name}</strong><small>{provider.category} · Reliability {provider.reliability}</small></div>
+            <div><strong>{provider.name}</strong><small>{provider.category} · Reliability {provider.reliability} · {provider.record_count.toLocaleString()} records{provider.last_success_at ? ` · synced ${new Date(provider.last_success_at).toLocaleDateString()}` : ""}</small></div>
             <span className={`quality-pill ${statusClass(provider.status)}`}>{provider.status.replaceAll("_", " ")}</span>
           </div>)}
         </div>

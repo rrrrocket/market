@@ -27,6 +27,8 @@ Official references: https://comtradeapi.un.org/, https://api.worldbank.org/v2/,
 
 Unavailable or authenticated providers return no records and publish their status. They never emit placeholders that look like facts.
 
+The Data Quality page separates connector reachability from stored analysis data. `CONNECTOR AVAILABLE` means the upstream API can be called but no canonical rows have been stored yet; `DATA READY` means real rows are present and shows their count and latest successful sync date. `SYNCED EMPTY` means a completed request returned no usable records. A green source badge therefore represents data already available to analysis, not merely an implemented adapter.
+
 The dataset ingestion endpoint accepts normalized rows identified as CSV, JSON, or Parquet input, stores the raw payload/checksum/revision first, then routes registered dataset types to idempotent trade, tariff, or macro normalizers. Unknown types remain safely stored as raw snapshots with PARTIAL status.
 
 ## Activation
@@ -42,14 +44,16 @@ curl -X POST http://localhost:7890/api/v1/admin/sync/comtrade \
 
 curl -X POST http://localhost:7890/api/v1/admin/sync/world-bank \
   -H 'Content-Type: application/json' \
-  -d '{"countries":["TUR"],"year":2024}'
+  -d '{"countries":["TUR"]}'
 
 curl -X POST http://localhost:7890/api/v1/admin/sync/wits \
   -H 'Content-Type: application/json' \
-  -d '{"hs_code":"902620","origin_iso3":"CHN","countries":["TUR"],"year":2022}'
+  -d '{"hs_code":"902620","origin_iso3":"CHN","countries":["TUR"],"year":2025}'
 ```
 
 Comtrade preview access may work without a key for small requests; configure `COMTRADE_API_KEY` for production quotas. World Bank and WITS do not require keys. Set `TRADE_DATA_PROVIDER=comtrade` before running an analysis that should consume live trade data.
+
+Omitting `countries` from the World Bank request synchronizes every supported non-aggregate country in bounded batches and keeps the latest reported value in 2022–2025 for each indicator. WITS and TED are synchronized per HS/market from the market detail page because tariff and tender searches are product-specific. The detail page then presents World Bank operating context, WITS tariff/access information, and matching TED notices alongside the trade analysis.
 
 ## All-HS analysis catalog
 

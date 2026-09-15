@@ -1,3 +1,5 @@
-import MarketWorkspace from "@/components/MarketWorkspace";
-export default function Explore(){return <main className="shell page"><MarketWorkspace/></main>}
+import { redirect } from "next/navigation";
 
+export default function ExplorePage() {
+  redirect("/");
+}

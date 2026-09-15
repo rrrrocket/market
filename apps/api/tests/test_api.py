@@ -118,6 +118,12 @@ def test_data_quality_watchlist_and_provider_surfaces(client):
     assert quality.status_code == 200
     assert "provider_health" in quality.json()
     assert "source_reliability" in quality.json()
+    world_bank = next(
+        row for row in quality.json()["provider_health"] if row["code"] == "WORLD_BANK"
+    )
+    assert world_bank["connector_status"] == "AVAILABLE"
+    assert world_bank["status"] in {"CONNECTOR_AVAILABLE", "DATA_READY"}
+    assert isinstance(world_bank["record_count"], int)
     pipeline = client.get("/api/v1/admin/comtrade-pipeline")
     assert pipeline.status_code == 200
     assert pipeline.json()["years"] == [2022, 2023, 2024, 2025, 2026]

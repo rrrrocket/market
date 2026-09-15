@@ -167,6 +167,36 @@ async def test_world_bank_normalization():
 
 
 @pytest.mark.asyncio
+async def test_world_bank_batch_filters_unsupported_countries_and_uses_latest_value():
+    def handler(request: httpx.Request):
+        if request.url.path.endswith("/country"):
+            return httpx.Response(
+                200,
+                json=[{}, [{"id": "USA", "region": {"value": "North America"}}]],
+            )
+        return httpx.Response(
+            200,
+            json=[
+                {},
+                [
+                    {"countryiso3code": "USA", "date": "2024", "value": 100},
+                    {"countryiso3code": "USA", "date": "2025", "value": 120},
+                ],
+            ],
+        )
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    provider = WorldBankProvider(client=client)
+    rows = await provider.get_countries_metrics(
+        ["USA", "ZZZ"], start_year=2022, end_year=2025
+    )
+    assert len(rows) == 10
+    assert {row.country_iso3 for row in rows} == {"USA"}
+    assert all(row.period_year == 2025 and row.value == 120 for row in rows)
+    await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_tariff_fixture_is_explicit_test_data():
     provider = FixtureTariffProvider()
     rows = await provider.get_tariff("902620", "TUR", "CHN", 2025)

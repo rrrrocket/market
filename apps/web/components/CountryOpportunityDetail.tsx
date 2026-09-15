@@ -10,6 +10,14 @@ const money = (value:number|null) => value == null ? "—" : new Intl.NumberForm
 const percent = (value:number|null) => value == null ? "—" : `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
 const typeLabels:Record<string,string> = {FAST_GROWTH:"高速增长",WHITE_SPACE:"市场空白",SCALE_LEADER:"规模品类",EMERGING:"新兴机会",WATCH:"持续观察"};
 const trendLabels:Record<string,string> = {FAST_GROWTH:"高速增长",ACCELERATING:"正在加速",GROWING:"持续增长",NEW:"新增进口",STABLE:"基本稳定",DECLINING:"近期下降"};
+const macroLabels:Record<string,string> = {gdp_usd:"GDP",gdp_growth:"GDP 增长",gdp_per_capita:"人均 GDP",population:"人口",household_consumption:"居民消费",internet_penetration:"互联网渗透率",imports_percent_gdp:"进口占 GDP",trade_percent_gdp:"贸易占 GDP",urbanization:"城镇化率",inflation:"通胀率"};
+
+function macroValue(key:string,value:number|null) {
+  if (value == null) return "—";
+  if (["gdp_growth","internet_penetration","imports_percent_gdp","trade_percent_gdp","urbanization","inflation"].includes(key)) return `${value.toFixed(1)}%`;
+  if (["gdp_usd","gdp_per_capita","household_consumption"].includes(key)) return money(value);
+  return new Intl.NumberFormat("zh-CN", {notation:"compact",maximumFractionDigits:1}).format(value);
+}
 
 function TrendChart({data}:{data:CountryOpportunityDetail["history"]}) {
   const points = useMemo(() => {
@@ -72,6 +80,10 @@ export default function CountryOpportunityDetailView({iso3}:{iso3:string}) {
       <div className="chart-title"><div><h2>自中国进口趋势</h2><p>所有六位 HS 汇总；缺失年份保持为空。</p></div><strong>{money(summary.china_import_value_usd)}</strong></div>
       <TrendChart data={data.history}/>
     </section>
+    <section className="card country-macro-card">
+      <div className="panel-title"><h2>国家经营环境</h2><span>World Bank · 最新可用年份</span></div>
+      {Object.keys(data.macro).length ? <div className="country-macro-grid">{Object.entries(data.macro).map(([key,item]) => <div key={key}><small>{macroLabels[key] || key.replaceAll("_"," ")}</small><strong>{macroValue(key,item.value)}</strong><span>{item.year} · {item.observed_type}</span></div>)}</div> : <div className="empty-state"><strong>尚未同步 World Bank 数据</strong><span>连接器可用，但当前国家没有已入库的宏观指标。</span></div>}
+    </section>
     <section className="card catalog-table-card country-products">
       <div className="country-product-heading"><div><div className="eyebrow">HS opportunity ranking</div><h2>商品商业机会</h2></div><p>机会分数综合进口规模、增长、同比动量、市场空间和稳定性。</p></div>
       <div className="catalog-toolbar country-product-toolbar">
@@ -92,7 +104,7 @@ export default function CountryOpportunityDetailView({iso3}:{iso3:string}) {
           <td className={(item.cagr_3y ?? 0)>=0?"positive":"negative"}>{percent(item.cagr_3y)}</td>
           <td>{item.china_share == null ? "—" : `${(item.china_share*100).toFixed(1)}%`}</td>
           <td><span className="opportunity-score">{item.opportunity_score.toFixed(1)}</span></td>
-          <td><Link className="catalog-open" href={`/product/${item.hs_code}`}>全球分析<ArrowRight size={14}/></Link></td>
+          <td><Link className="catalog-open" href={`/product/${item.hs_code}/country/${data.country.iso3}`}>查看该市场<ArrowRight size={14}/></Link></td>
         </tr>)}</tbody>
       </table></div>}
       <div className="catalog-pagination"><span>第 {page} / {pages} 页 · {data.product_pagination.total.toLocaleString()} 个 HS</span><div><button disabled={page<=1} onClick={() => setPage((value)=>value-1)}><ArrowLeft size={15}/></button><button disabled={page>=pages} onClick={() => setPage((value)=>value+1)}><ArrowRight size={15}/></button></div></div>

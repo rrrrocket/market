@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { marketApi } from "@/lib/api";
+import { label } from "@/lib/labels";
 
 type Catalog = Awaited<ReturnType<typeof marketApi.hsCatalog>>;
 
@@ -23,7 +24,7 @@ export default function HsAnalysisCatalog() {
     try {
       setData(await marketApi.hsCatalog({q: search, status, page, page_size: 50}));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Catalog unavailable");
+      setError(reason instanceof Error ? reason.message : "无法加载 HS 分析库");
     } finally {
       setLoading(false);
     }
@@ -56,13 +57,13 @@ export default function HsAnalysisCatalog() {
       </div>
 
       {error && <div className="error">{error}</div>}
-      {loading && <div className="loading">Loading HS catalog…</div>}
+      {loading && <div className="loading">正在加载 HS 分析库…</div>}
       {!loading && data && <div className="catalog-scroll"><table className="table catalog-table">
         <thead><tr><th>HS</th><th>商品类目</th><th>状态</th><th>市场数</th><th>首选市场</th><th>分数</th><th></th></tr></thead>
         <tbody>{data.items.map((item) => <tr key={item.hs_code}>
           <td><code>{item.hs_code}</code></td>
           <td><strong>{item.name_en}</strong>{item.name_zh && <small>{item.name_zh}</small>}</td>
-          <td><span className={`catalog-status status-${item.status.toLowerCase()}`}>{item.status.replaceAll("_", " ")}</span></td>
+          <td><span className={`catalog-status status-${item.status.toLowerCase()}`}>{label(item.status)}</span></td>
           <td>{item.markets_count || "—"}</td><td>{item.top_market_name ? `${item.top_market_name} · ${item.top_market_iso3}` : "—"}</td><td>{item.top_score?.toFixed(1) ?? "—"}</td>
           <td><Link className="catalog-open" href={`/product/${item.hs_code}`}>{item.status === "READY" ? "查看" : "生成分析"}<ArrowRight size={14}/></Link></td>
         </tr>)}</tbody>

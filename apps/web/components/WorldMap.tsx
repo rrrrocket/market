@@ -70,7 +70,7 @@ export default function WorldMap({ data, selected, onSelect }: WorldMapProps) {
       })
       .catch((error: unknown) => {
         if (active) {
-          setLoadError(error instanceof Error ? error.message : "Unable to load map");
+          setLoadError(error instanceof Error ? error.message : "无法加载地图");
         }
       });
     return () => {
@@ -91,16 +91,16 @@ export default function WorldMap({ data, selected, onSelect }: WorldMapProps) {
   }
 
   if (countries.length === 0) {
-    return <div className="map map-message">Loading world map…</div>;
+    return <div className="map map-message">正在加载世界地图…</div>;
   }
 
   return (
-    <div className="map" aria-label="Market attractiveness world map">
+    <div className="map" aria-label="按市场吸引力着色的世界地图">
       <svg
         className="world-map-svg"
         viewBox={viewBox}
         role="img"
-        aria-label="World map colored by market attractiveness"
+        aria-label="按市场吸引力着色的世界地图"
         preserveAspectRatio="xMidYMid meet"
       >
         <rect x="-500" y="-250" width="2000" height="1000" fill="#eef3f7" />
@@ -127,9 +127,9 @@ export default function WorldMap({ data, selected, onSelect }: WorldMapProps) {
           })}
         </g>
       </svg>
-      <div className="map-controls" aria-label="Map zoom controls">
-        <button type="button" onClick={() => setZoom((value) => Math.min(3, value + 0.5))} aria-label="Zoom in">+</button>
-        <button type="button" onClick={() => setZoom((value) => Math.max(1, value - 0.5))} aria-label="Zoom out">−</button>
+      <div className="map-controls" aria-label="地图缩放控制">
+        <button type="button" onClick={() => setZoom((value) => Math.min(3, value + 0.5))} aria-label="放大">+</button>
+        <button type="button" onClick={() => setZoom((value) => Math.max(1, value - 0.5))} aria-label="缩小">−</button>
       </div>
     </div>
   );

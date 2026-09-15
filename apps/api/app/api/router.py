@@ -379,7 +379,7 @@ def serialize_opportunity(row) -> OpportunityListItem:
         rank=opp.rank_global,
         hs_code=opp.hs_code,
         destination_iso3=opp.destination_iso3,
-        country_name=country.name_en,
+        country_name=country.name_zh or country.name_en,
         region=country.region,
         period_year=opp.period_year,
         score=opp.market_attractiveness_score,
@@ -517,27 +517,27 @@ def opportunity_detail(opportunity_id: int, db: Session = Depends(get_db)):
     reasons = []
     if opp.size_score >= 90:
         reasons.append(
-            {"sentiment": "positive", "text": "Market size ranks in the global top 10%."}
+            {"sentiment": "positive", "text": "市场规模位居全球前 10%。"}
         )
     if item.cagr_3y is not None:
         reasons.append(
             {
                 "sentiment": "positive" if item.cagr_3y >= 0 else "negative",
-                "text": f"Three-year structural growth is {item.cagr_3y:.1%}.",
+                "text": f"三年结构性增长率为 {item.cagr_3y:.1%}。",
             }
         )
     if item.yoy_growth is not None:
         reasons.append(
             {
                 "sentiment": "positive" if item.yoy_growth >= 0 else "negative",
-                "text": f"Latest complete-year momentum is {item.yoy_growth:.1%}.",
+                "text": f"最新完整年度同比增长为 {item.yoy_growth:.1%}。",
             }
         )
     if opp.stability_score is not None and opp.stability_score < 50:
         reasons.append(
             {
                 "sentiment": "negative",
-                "text": "Recent import values are more volatile than a stable market.",
+                "text": "近期进口额波动高于稳定市场水平。",
             }
         )
     scores = {

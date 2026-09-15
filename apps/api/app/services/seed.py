@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pycountry
+from babel import Locale
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -30,6 +31,8 @@ COUNTRIES = [
     ("PL", "POL", "616", "Poland", "波兰", "Europe", "Eastern Europe"),
     ("CN", "CHN", "156", "China", "中国", "Asia", "Eastern Asia"),
 ]
+
+ZH_TERRITORIES = Locale.parse("zh_CN").territories
 
 DATA_SOURCES = [
     (
@@ -219,6 +222,10 @@ def seed_reference_data(db: Session) -> None:
             if country.alpha_3 not in existing
         ]
     )
+    db.flush()
+    for country in db.scalars(select(Country)).all():
+        if not country.name_zh:
+            country.name_zh = ZH_TERRITORIES.get(country.iso2)
     existing_sources = {source.code for source in db.scalars(select(DataSource)).all()}
     db.add_all(
         [

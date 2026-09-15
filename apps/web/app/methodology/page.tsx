@@ -1,31 +1,31 @@
 const semantics = [
-  ["REPORTED", "A government, company, or supplier formally reported the value."],
-  ["OBSERVED", "Matrix One directly observed a state through an API or public surface."],
-  ["ESTIMATED", "A statistical model estimated the value; it is not a direct observation."],
-  ["INFERRED", "A rule combined multiple recorded signals into a conclusion."],
-  ["AI_GENERATED", "AI produced text or a hypothesis. It must link evidence or remain a hypothesis."],
+  ["已报告（REPORTED）", "政府、企业或供应商正式发布的数据。"],
+  ["已观测（OBSERVED）", "Matrix One 通过 API 或公开页面直接观测到的状态。"],
+  ["估算（ESTIMATED）", "由统计模型估算，不属于直接观测值。"],
+  ["推导（INFERRED）", "由规则综合多项已有信号得出的结论。"],
+  ["AI 生成（AI_GENERATED）", "由 AI 生成的文字或假设；必须关联证据，否则只能视为假设。"],
 ];
 
 export default function Methodology() {
   return <main className="shell page method">
-    <div className="eyebrow">Transparent by design</div>
-    <h1 className="page-title">Methodology & data reliability</h1>
-    <p className="subtitle">How recorded facts become signals, confidence, and decision support without turning missing data into invented certainty.</p>
+    <div className="eyebrow">透明、可追溯的分析</div>
+    <h1 className="page-title">分析方法与数据可靠性</h1>
+    <p className="subtitle">说明事实数据如何转化为信号、置信度和决策依据，并确保缺失数据不会被包装成确定结论。</p>
 
-    <section className="card"><h2>Data pipeline</h2><div className="method-flow"><span>Raw snapshot</span><b>→</b><span>Canonical observation</span><b>→</b><span>Demand signal</span><b>→</b><span>Opportunity</span><b>→</b><span>Decision</span></div><p>Raw provider responses remain immutable. Normalized records and derived intelligence link back to their source, retrieval time, version, and evidence.</p></section>
+    <section className="card"><h2>数据处理流程</h2><div className="method-flow"><span>原始快照</span><b>→</b><span>标准化记录</span><b>→</b><span>需求信号</span><b>→</b><span>市场机会</span><b>→</b><span>决策</span></div><p>数据源原始响应保持不可变；标准化数据和衍生情报均关联来源、获取时间、版本与证据。</p></section>
 
-    <section className="card"><h2>Observed type</h2><div className="semantic-grid">{semantics.map(([label, copy]) => <div key={label}><strong>{label}</strong><p>{copy}</p></div>)}</div></section>
+    <section className="card"><h2>数据观测类型</h2><div className="semantic-grid">{semantics.map(([label, copy]) => <div key={label}><strong>{label}</strong><p>{copy}</p></div>)}</div></section>
 
-    <section className="card"><h2>Source reliability</h2><p>Reliability is source metadata and can be adjusted by administrators. It does not make every value from a source correct.</p><div className="reliability-scale"><span>A+<small>Verified Matrix One outcomes</small></span><span>A<small>Official statistics and confirmed offers</small></span><span>A−<small>Official marketplace APIs</small></span><span>B+/B<small>Official behavior signals and public observations</small></span><span>C<small>Third-party estimates</small></span><span>D<small>Weak or AI-inferred sources</small></span></div></section>
+    <section className="card"><h2>数据源可靠性</h2><p>可靠性是数据源层面的元数据，可由管理员调整；高可靠性并不表示该来源的每一个数值都绝对正确。</p><div className="reliability-scale"><span>A+<small>已验证的 Matrix One 业务结果</small></span><span>A<small>官方统计与已确认报价</small></span><span>A−<small>官方市场或采购 API</small></span><span>B+/B<small>官方行为信号与公开观测</small></span><span>C<small>第三方估算</small></span><span>D<small>较弱或 AI 推导来源</small></span></div></section>
 
-    <section className="card"><h2>Market Attractiveness</h2><p>The current reproducible score ranks product-country structural demand. It is not a sales, profit, or distribution forecast.</p><div className="formula">Market Attractiveness = 45% Size + 30% Structural Growth + 15% Momentum + 10% Stability</div><p>Missing components are not zero. Available weights are re-normalized, while Coverage shows how much of the intended formula was available.</p></section>
+    <section className="card"><h2>市场吸引力</h2><p>当前可复现评分用于比较商品—国家组合的结构性需求，不是销售额、利润或分销结果预测。</p><div className="formula">市场吸引力 = 45% 市场规模 + 30% 结构增长 + 15% 增长动量 + 10% 稳定性</div><p>缺失项不会按零分处理。系统会按已有指标重新归一化权重，同时用数据覆盖度说明原公式中实际可计算的比例。</p></section>
 
-    <section className="card"><h2>Distribution Opportunity</h2><p>This score remains <strong>Not enough data</strong> until both verified China Supply Fit and Economics are available. Demand alone cannot become a distribution recommendation.</p><div className="formula">Demand 30% · Supply Fit 25% · Economics 20% · Competition 10% · Market Access 10% · Risk 5%</div></section>
+    <section className="card"><h2>分销机会</h2><p>只有在中国供给匹配度和经济性数据均经过验证后，才会生成该分数；单独的需求数据不能直接构成分销建议。</p><div className="formula">需求 30% · 供给匹配 25% · 经济性 20% · 竞争 10% · 市场准入 10% · 风险 5%</div></section>
 
-    <section className="card"><h2>Confidence is separate</h2><div className="formula">Confidence = 35% Coverage + 30% Reliability + 20% Freshness + 15% Cross-source Consistency</div><p>Confidence describes the evidence supporting an output; it does not describe market attractiveness or commercial upside.</p></section>
+    <section className="card"><h2>置信度独立计算</h2><div className="formula">置信度 = 35% 覆盖度 + 30% 可靠性 + 20% 时效性 + 15% 跨来源一致性</div><p>置信度描述结论背后的证据质量，不表示市场吸引力或商业收益大小。</p></section>
 
-    <section className="card"><h2>Freshness</h2><p>Freshness rules follow the data type: annual trade and macro data age over months, monthly trade over weeks, and marketplace, tender, and supplier data over hours or days. Unknown freshness remains UNKNOWN.</p></section>
+    <section className="card"><h2>数据时效性</h2><p>不同数据采用不同老化规则：年度贸易和宏观数据按月计算，月度贸易按周计算，市场平台、招标和供应商数据按小时或天计算；无法判断时效性时保持“未知”。</p></section>
 
-    <section className="card"><h2>Known limitations</h2><p>Trade data can include revisions, mirror-data differences, re-exports, reporting gaps, and HS classification changes. Unit value is customs value divided by quantity or weight; it is not a retail price. Google Trends, when connected, represents normalized interest rather than absolute search volume.</p><p>Score definitions are immutable. Formula changes create a new score version while earlier results remain reproducible.</p></section>
+    <section className="card"><h2>已知限制</h2><p>贸易数据可能存在修订、镜像数据差异、转口贸易、申报缺口和 HS 分类变更。单位价值是海关货值除以数量或重量，不等同于零售价。Google Trends 接入后代表归一化关注度，而不是绝对搜索量。</p><p>评分定义保持不可变；公式调整会创建新的评分版本，历史结果仍可复现。</p></section>
   </main>;
 }

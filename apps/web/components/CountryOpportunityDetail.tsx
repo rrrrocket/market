@@ -31,7 +31,7 @@ function TrendChart({data}:{data:CountryOpportunityDetail["history"]}) {
     }));
   }, [data]);
   return <div className="country-trend-chart">
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="China import trend">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="自中国进口趋势">
       <defs><linearGradient id="countryTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#1459d9" stopOpacity=".25"/><stop offset="1" stopColor="#1459d9" stopOpacity="0"/></linearGradient></defs>
       {[20,40,60,80].map((y) => <line key={y} x1="5" x2="95" y1={y} y2={y} className="chart-grid"/>)}
       {points.length > 1 && <polygon points={`7,82 ${points.map((point) => `${point.x},${point.y}`).join(" ")} 93,82`} fill="url(#countryTrend)"/>}
@@ -54,14 +54,14 @@ export default function CountryOpportunityDetailView({iso3}:{iso3:string}) {
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try { setData(await marketApi.countryOpportunity(iso3, {sort,q:search,opportunity_type:type,page,page_size:50})); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Country analysis unavailable"); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "无法加载国家分析"); }
     finally { setLoading(false); }
   }, [iso3, page, search, sort, type]);
   useEffect(() => { void load(); }, [load]);
 
   function submit(event:FormEvent) { event.preventDefault(); setPage(1); setSearch(query.trim()); }
   if (error) return <main className="shell page"><Link href="/countries" className="back-link"><ArrowLeft size={15}/>返回国家列表</Link><section className="card error">{error}</section></main>;
-  if (!data) return <main className="shell page"><section className="card loading">Loading country analysis…</section></main>;
+  if (!data) return <main className="shell page"><section className="card loading">正在加载国家分析…</section></main>;
   const summary = data.summary;
   const pages = Math.max(1, Math.ceil(data.product_pagination.total / data.product_pagination.page_size));
   return <main className="shell page country-detail-page">
@@ -85,13 +85,13 @@ export default function CountryOpportunityDetailView({iso3}:{iso3:string}) {
       {Object.keys(data.macro).length ? <div className="country-macro-grid">{Object.entries(data.macro).map(([key,item]) => <div key={key}><small>{macroLabels[key] || key.replaceAll("_"," ")}</small><strong>{macroValue(key,item.value)}</strong><span>{item.year} · {item.observed_type}</span></div>)}</div> : <div className="empty-state"><strong>尚未同步 World Bank 数据</strong><span>连接器可用，但当前国家没有已入库的宏观指标。</span></div>}
     </section>
     <section className="card catalog-table-card country-products">
-      <div className="country-product-heading"><div><div className="eyebrow">HS opportunity ranking</div><h2>商品商业机会</h2></div><p>机会分数综合进口规模、增长、同比动量、市场空间和稳定性。</p></div>
+      <div className="country-product-heading"><div><div className="eyebrow">HS 机会排名</div><h2>商品商业机会</h2></div><p>机会分数综合进口规模、增长、同比动量、市场空间和稳定性。</p></div>
       <div className="catalog-toolbar country-product-toolbar">
         <form onSubmit={submit}><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索 HS 或商品类目"/><button className="primary">搜索</button></form>
         <select value={type} onChange={(event) => {setType(event.target.value);setPage(1);}}><option value="">全部机会</option><option value="FAST_GROWTH">高速增长</option><option value="WHITE_SPACE">市场空白</option><option value="SCALE_LEADER">规模品类</option><option value="EMERGING">新兴机会</option><option value="WATCH">持续观察</option></select>
         <select value={sort} onChange={(event) => {setSort(event.target.value);setPage(1);}}><option value="opportunity">按机会分数</option><option value="china_import">按对华进口额</option><option value="growth">按三年增长</option><option value="headroom">按市场空间</option></select>
       </div>
-      {loading && <div className="loading table-loading">Updating ranking…</div>}
+      {loading && <div className="loading table-loading">正在更新排名…</div>}
       {!loading && <div className="catalog-scroll"><table className="table product-opportunity-table">
         <thead><tr><th>机会排名</th><th>HS / 商品</th><th>机会类型</th><th>自中国进口</th><th>进口排名</th><th>同比</th><th>三年 CAGR</th><th>中国份额</th><th>机会分</th><th></th></tr></thead>
         <tbody>{data.products.map((item) => <tr key={item.hs_code}>

@@ -21,7 +21,7 @@ export default function CountryOpportunityExplorer() {
   useEffect(() => {
     marketApi.countryOpportunities().then((data) => {
       setItems(data.items); setTotal(data.total_china_import_value_usd); setYear(data.year);
-    }).catch((reason) => setError(reason instanceof Error ? reason.message : "Country data unavailable"))
+    }).catch((reason) => setError(reason instanceof Error ? reason.message : "无法加载国家机会数据"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -35,7 +35,7 @@ export default function CountryOpportunityExplorer() {
     });
   }, [items, query, sort]);
 
-  if (loading) return <section className="card loading">Loading country opportunities…</section>;
+  if (loading) return <section className="card loading">正在加载国家商业机会…</section>;
   if (error) return <section className="card error">{error}</section>;
   const growing = items.filter((item) => (item.cagr_3y ?? 0) > 0).length;
   return <>

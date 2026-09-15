@@ -24,7 +24,7 @@ export default function HsIntelligenceHub() {
   }
 
   return <>
-    <div className="intelligence-tabs" role="tablist" aria-label="HS Intelligence views">
+    <div className="intelligence-tabs" role="tablist" aria-label="HS 市场情报视图">
       <button role="tab" aria-selected={view === "catalog"} className={view === "catalog" ? "active" : ""} onClick={() => select("catalog")}><ListTree size={17}/><span>市场分析库<small>浏览全部六位 HS 与市场结果</small></span></button>
       <button role="tab" aria-selected={view === "pipeline"} className={view === "pipeline" ? "active" : ""} onClick={() => select("pipeline")}><Database size={17}/><span>数据处理任务<small>下载、导入与分析进度</small></span></button>
     </div>

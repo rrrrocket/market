@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, Database, Download, RefreshCw } from "luci
 import { useCallback, useEffect, useState } from "react";
 
 import { marketApi } from "@/lib/api";
+import { label } from "@/lib/labels";
 
 type Pipeline = Awaited<ReturnType<typeof marketApi.comtradePipeline>>;
 
@@ -24,7 +25,7 @@ function Stage({label, value, detail}:{label:string;value:number;detail:string})
 export default function ComtradePipelineDashboard() {
   const [data, setData] = useState<Pipeline | null>(null);
   const [error, setError] = useState("");
-  const load = useCallback(() => marketApi.comtradePipeline().then(setData).catch((reason) => setError(reason instanceof Error ? reason.message : "Pipeline unavailable")), []);
+  const load = useCallback(() => marketApi.comtradePipeline().then(setData).catch((reason) => setError(reason instanceof Error ? reason.message : "无法加载数据处理任务")), []);
 
   useEffect(() => {
     void load();
@@ -33,13 +34,13 @@ export default function ComtradePipelineDashboard() {
   }, [load]);
 
   if (error) return <section className="card error">{error}</section>;
-  if (!data) return <section className="card loading">Loading local data pipeline…</section>;
+  if (!data) return <section className="card loading">正在加载本地数据处理任务…</section>;
 
   const active = ["DOWNLOADING", "IMPORTING", "ANALYZING"].includes(data.status);
   return <section className="card pipeline-overview">
     <div className="pipeline-heading">
-      <div><div className="eyebrow">Local data pipeline</div><h2>UN Comtrade 全量 HS 数据</h2></div>
-      <span className={`pipeline-state state-${data.status.toLowerCase()}`}>{active && <RefreshCw size={13} className="spin"/>}{data.status.replaceAll("_", " ")}</span>
+      <div><div className="eyebrow">本地数据处理任务</div><h2>UN Comtrade 全量 HS 数据</h2></div>
+      <span className={`pipeline-state state-${data.status.toLowerCase()}`}>{active && <RefreshCw size={13} className="spin"/>}{label(data.status)}</span>
     </div>
     <div className="pipeline-kpis">
       <div><Download size={18}/><small>本地批次</small><strong>{data.downloaded_batches} / {data.total_batches || "—"}</strong></div>

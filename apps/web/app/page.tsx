@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { marketApi } from "@/lib/api";
+import { label } from "@/lib/labels";
 import { DataQuality } from "@/types/market";
 
 type Countries = Awaited<ReturnType<typeof marketApi.countryOpportunities>>;
@@ -66,20 +67,20 @@ export default function Home() {
   return <main className="shell market-dashboard">
     <section className="dashboard-hero">
       <div>
-        <div className="eyebrow">Global market command center</div>
+        <div className="eyebrow">全球市场决策中心</div>
         <h1>全球市场机会总览</h1>
         <p>从中国出口数据出发，按国家与六位 HS 识别市场规模、增长趋势和未覆盖空间。</p>
       </div>
       <div className="dashboard-actions">
         <Link href="/countries" className="primary">查看国家机会 <ArrowRight size={16}/></Link>
-        <Link href="/intelligence" className="secondary-action">HS Intelligence <ArrowRight size={16}/></Link>
+        <Link href="/intelligence" className="secondary-action">HS 市场情报 <ArrowRight size={16}/></Link>
       </div>
     </section>
 
     <form className="searchbox product-search dashboard-search" onSubmit={submitSearch}>
       <Search size={20} className="search-icon"/>
       <div className="search-field">
-        <input aria-label="HS Code or product keyword" value={query} autoComplete="off" onChange={(event) => {setQuery(event.target.value);setSearchOpen(true);}} onFocus={() => setSearchOpen(true)} placeholder="输入 HS Code、英文或中文商品名称"/>
+        <input aria-label="HS 编码或商品关键词" value={query} autoComplete="off" onChange={(event) => {setQuery(event.target.value);setSearchOpen(true);}} onFocus={() => setSearchOpen(true)} placeholder="输入 HS Code、英文或中文商品名称"/>
         {searchOpen && products.length > 0 && <div className="product-results">{products.map((product) => <button type="button" key={product.hs_code} onClick={() => router.push(`/product/${product.hs_code}`)}><strong>HS {product.hs_code}</strong><span>{product.name_en}</span><small>{product.name_zh || `${product.level}-digit HS 2022`}</small></button>)}</div>}
       </div>
       <button className="primary">分析全球市场 <ArrowRight size={16}/></button>
@@ -107,7 +108,7 @@ export default function Home() {
       <aside className="card pipeline-overview">
         <div className="panel-title"><h2>全量分析进度</h2><Link className="catalog-open" href="/intelligence#pipeline">查看任务<ArrowRight size={14}/></Link></div>
         <div className="pipeline-body">
-          <div className="pipeline-state"><span className={`quality-pill ${pipeline.status === "FAILED" ? "quality-warn" : "quality-good"}`}>{pipeline.status.replaceAll("_", " ")}</span><small>更新于 {pipeline.updated_at ? new Date(pipeline.updated_at).toLocaleString() : "—"}</small></div>
+          <div className="pipeline-state"><span className={`quality-pill ${pipeline.status === "FAILED" ? "quality-warn" : "quality-good"}`}>{label(pipeline.status)}</span><small>更新于 {pipeline.updated_at ? new Date(pipeline.updated_at).toLocaleString() : "—"}</small></div>
           {[["下载",pipeline.download_percent],["导入",pipeline.import_percent],["市场分析",pipeline.analysis_percent]].map(([label,value]) => <div className="pipeline-progress" key={String(label)}><div><span>{label}</span><strong>{Number(value).toFixed(1)}%</strong></div><div className="progress-track"><i style={{width:`${Math.min(100,Number(value))}%`}}/></div></div>)}
           <div className="pipeline-facts"><div><span>原始记录</span><strong>{pipeline.records_downloaded.toLocaleString()}</strong></div><div><span>完成批次</span><strong>{pipeline.imported_batches}/{pipeline.total_batches}</strong></div><div><span>当前 HS</span><strong>{pipeline.current_hs || "—"}</strong></div><div><span>失败 HS</span><strong>{pipeline.failed_hs.toLocaleString()}</strong></div></div>
         </div>

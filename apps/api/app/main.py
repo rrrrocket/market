@@ -32,4 +32,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def cache_public_reads(request, call_next):
+    response = await call_next(request)
+    cacheable_paths = (
+        "/api/v1/country-opportunities",
+        "/api/v1/catalog/hs",
+        "/api/v1/products/search",
+    )
+    if request.method == "GET" and request.url.path.startswith(cacheable_paths):
+        # Public market data changes only after an import/analysis.  Let the
+        # browser reuse a recent response when navigating between pages.
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+    return response
+
+
 app.include_router(router)

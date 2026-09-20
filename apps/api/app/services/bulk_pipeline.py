@@ -13,7 +13,7 @@ from typing import Any
 
 import httpx
 import pycountry
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -314,6 +314,11 @@ class ComtradeLocalPipeline:
             manifest["status"] = "IMPORTED"
             manifest["import_finished_at"] = iso_now()
             self.write_manifest(manifest)
+            # The public country dashboard reads this compact aggregate instead
+            # of grouping every raw observation on every page visit.
+            if db.bind and db.bind.dialect.name == "postgresql":
+                db.execute(text("REFRESH MATERIALIZED VIEW country_trade_yearly"))
+                db.commit()
             return manifest
         except Exception as exc:
             db.rollback()

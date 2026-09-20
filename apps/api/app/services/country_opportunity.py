@@ -4,7 +4,7 @@ import math
 from collections import defaultdict
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.models import Country, CountryMetric, HsProduct, SourceSnapshot, TradeObservation
@@ -88,28 +88,44 @@ def country_opportunity_catalog(
     db: Session, *, year: int, origin_iso3: str = "CHN"
 ) -> dict[str, Any]:
     origin_iso3 = origin_iso3.upper()
-    history_rows = db.execute(
-        select(
-            TradeObservation.reporter_iso3,
-            TradeObservation.period_year,
-            TradeObservation.partner_iso3,
-            func.sum(TradeObservation.trade_value_usd),
-            func.count(TradeObservation.id),
-        )
-        .join(SourceSnapshot, SourceSnapshot.id == TradeObservation.source_snapshot_id)
-        .where(
-            _bulk_source_filter(),
-            TradeObservation.partner_iso3.in_([origin_iso3, "WLD"]),
-            TradeObservation.flow == "IMPORT",
-            TradeObservation.period_type == "YEAR",
-            TradeObservation.period_year.between(year - 3, year),
-        )
-        .group_by(
-            TradeObservation.reporter_iso3,
-            TradeObservation.period_year,
-            TradeObservation.partner_iso3,
-        )
-    ).all()
+    if db.bind and db.bind.dialect.name == "postgresql":
+        # Kept up to date after each local Comtrade import.  Reading this view
+        # avoids a full aggregation over the multi-million-row raw table.
+        history_rows = db.execute(
+            text(
+                """
+                SELECT reporter_iso3, period_year, partner_iso3, trade_value_usd, hs_count
+                FROM country_trade_yearly
+                WHERE partner_iso3 IN (:origin_iso3, 'WLD')
+                  AND period_year BETWEEN :start_year AND :end_year
+                """
+            ),
+            {"origin_iso3": origin_iso3, "start_year": year - 3, "end_year": year},
+        ).all()
+    else:
+        # SQLite is used by the test suite and does not support materialized views.
+        history_rows = db.execute(
+            select(
+                TradeObservation.reporter_iso3,
+                TradeObservation.period_year,
+                TradeObservation.partner_iso3,
+                func.sum(TradeObservation.trade_value_usd),
+                func.count(TradeObservation.id),
+            )
+            .join(SourceSnapshot, SourceSnapshot.id == TradeObservation.source_snapshot_id)
+            .where(
+                _bulk_source_filter(),
+                TradeObservation.partner_iso3.in_([origin_iso3, "WLD"]),
+                TradeObservation.flow == "IMPORT",
+                TradeObservation.period_type == "YEAR",
+                TradeObservation.period_year.between(year - 3, year),
+            )
+            .group_by(
+                TradeObservation.reporter_iso3,
+                TradeObservation.period_year,
+                TradeObservation.partner_iso3,
+            )
+        ).all()
     histories: dict[str, dict[str, dict[int, float]]] = defaultdict(
         lambda: defaultdict(dict)
     )

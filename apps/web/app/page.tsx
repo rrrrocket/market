@@ -29,17 +29,17 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    Promise.all([
-      marketApi.countryOpportunities(),
-      marketApi.hsCatalog({status:"ALL",page:1,page_size:6}),
-      marketApi.comtradePipeline(),
-      marketApi.dataQuality(),
-    ]).then(([countryData, catalogData, pipelineData, qualityData]) => {
-      setCountries(countryData);
-      setCatalog(catalogData);
-      setPipeline(pipelineData);
-      setQuality(qualityData);
-    }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "首页数据加载失败"));
+    let active = true;
+    marketApi.countryOpportunities()
+      .then((data) => active && setCountries(data))
+      .catch((reason: unknown) => active && setError(reason instanceof Error ? reason.message : "国家机会数据加载失败"));
+    marketApi.hsCatalog({status:"ALL",page:1,page_size:6})
+      .then((data) => active && setCatalog(data));
+    marketApi.comtradePipeline()
+      .then((data) => active && setPipeline(data));
+    marketApi.dataQuality()
+      .then((data) => active && setQuality(data));
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -58,11 +58,8 @@ export default function Home() {
     if (product) router.push(`/product/${product.hs_code}`);
   }
 
-  if (error) return <main className="shell page"><section className="card error">{error}</section></main>;
-  if (!countries || !catalog || !pipeline || !quality) return <main className="shell page"><section className="card loading">正在汇总全球市场数据…</section></main>;
-
-  const readyProviders = quality.provider_health.filter((provider) => provider.status === "DATA_READY");
-  const topCountries = countries.items.slice(0, 6);
+  const readyProviders = quality?.provider_health.filter((provider) => provider.status === "DATA_READY") ?? [];
+  const topCountries = countries?.items.slice(0, 6) ?? [];
 
   return <main className="shell market-dashboard">
     <section className="dashboard-hero">
@@ -87,10 +84,10 @@ export default function Home() {
     </form>
 
     <section className="dashboard-kpis">
-      <div className="card dashboard-kpi"><Globe2 size={18}/><span>覆盖国家/地区</span><strong>{countries.countries.toLocaleString()}</strong><small>{countries.year} 年优先口径</small></div>
-      <div className="card dashboard-kpi"><Layers3 size={18}/><span>已分析 HS</span><strong>{catalog.summary.analyzed_hs.toLocaleString()}</strong><small>共 {catalog.summary.total_hs.toLocaleString()} 个六位 HS</small></div>
-      <div className="card dashboard-kpi"><BarChart3 size={18}/><span>市场机会</span><strong>{(quality.coverage.opportunities ?? 0).toLocaleString()}</strong><small>HS × 国家分析结果</small></div>
-      <div className="card dashboard-kpi"><Database size={18}/><span>贸易观察值</span><strong>{(quality.coverage.trade_observations ?? 0).toLocaleString()}</strong><small>{readyProviders.length} 个数据源已有数据</small></div>
+      <div className="card dashboard-kpi"><Globe2 size={18}/><span>覆盖国家/地区</span><strong>{countries ? countries.countries.toLocaleString() : "—"}</strong><small>{countries ? `${countries.year} 年优先口径` : "正在加载…"}</small></div>
+      <div className="card dashboard-kpi"><Layers3 size={18}/><span>已分析 HS</span><strong>{catalog ? catalog.summary.analyzed_hs.toLocaleString() : "—"}</strong><small>{catalog ? `共 ${catalog.summary.total_hs.toLocaleString()} 个六位 HS` : "正在加载…"}</small></div>
+      <div className="card dashboard-kpi"><BarChart3 size={18}/><span>市场机会</span><strong>{quality ? (quality.coverage.opportunities ?? 0).toLocaleString() : "—"}</strong><small>{quality ? "HS × 国家分析结果" : "正在加载…"}</small></div>
+      <div className="card dashboard-kpi"><Database size={18}/><span>贸易观察值</span><strong>{quality ? (quality.coverage.trade_observations ?? 0).toLocaleString() : "—"}</strong><small>{quality ? `${readyProviders.length} 个数据源已有数据` : "正在加载…"}</small></div>
     </section>
 
     <div className="dashboard-grid">
@@ -102,22 +99,22 @@ export default function Home() {
           <div><small>自中国进口</small><strong>{money(country.china_import_value_usd)}</strong></div>
           <div className={(country.cagr_3y ?? 0) >= 0 ? "positive" : "negative"}>{(country.cagr_3y ?? 0) >= 0 ? <TrendingUp size={15}/> : <TrendingDown size={15}/>}<span>{percent(country.cagr_3y)}<small>3Y CAGR</small></span></div>
           <ArrowRight size={16}/>
-        </Link>)}</div>
+        </Link>)}{!countries && <div className="dashboard-inline-loading">{error || "正在加载重点市场…"}</div>}</div>
       </section>
 
       <aside className="card pipeline-overview">
         <div className="panel-title"><h2>全量分析进度</h2><Link className="catalog-open" href="/intelligence#pipeline">查看任务<ArrowRight size={14}/></Link></div>
-        <div className="pipeline-body">
+        <div className="pipeline-body">{pipeline ? <>
           <div className="pipeline-state"><span className={`quality-pill ${pipeline.status === "FAILED" ? "quality-warn" : "quality-good"}`}>{label(pipeline.status)}</span><small>更新于 {pipeline.updated_at ? new Date(pipeline.updated_at).toLocaleString() : "—"}</small></div>
           {[["下载",pipeline.download_percent],["导入",pipeline.import_percent],["市场分析",pipeline.analysis_percent]].map(([label,value]) => <div className="pipeline-progress" key={String(label)}><div><span>{label}</span><strong>{Number(value).toFixed(1)}%</strong></div><div className="progress-track"><i style={{width:`${Math.min(100,Number(value))}%`}}/></div></div>)}
           <div className="pipeline-facts"><div><span>原始记录</span><strong>{pipeline.records_downloaded.toLocaleString()}</strong></div><div><span>完成批次</span><strong>{pipeline.imported_batches}/{pipeline.total_batches}</strong></div><div><span>当前 HS</span><strong>{pipeline.current_hs || "—"}</strong></div><div><span>失败 HS</span><strong>{pipeline.failed_hs.toLocaleString()}</strong></div></div>
-        </div>
+        </> : <div className="dashboard-inline-loading">正在加载分析进度…</div>}</div>
       </aside>
     </div>
 
     <section className="card dashboard-sources">
       <div className="panel-title"><h2>已进入分析的数据源</h2><Link className="catalog-open" href="/admin/data-quality">数据质量<ArrowRight size={14}/></Link></div>
-      <div className="dashboard-source-grid">{readyProviders.map((provider) => <div key={provider.code}><Database size={17}/><span>{provider.name}</span><strong>{provider.record_count.toLocaleString()}</strong><small>{provider.category} · {provider.last_success_at ? new Date(provider.last_success_at).toLocaleDateString() : "—"}</small></div>)}</div>
+      <div className="dashboard-source-grid">{quality ? readyProviders.map((provider) => <div key={provider.code}><Database size={17}/><span>{provider.name}</span><strong>{provider.record_count.toLocaleString()}</strong><small>{provider.category} · {provider.last_success_at ? new Date(provider.last_success_at).toLocaleDateString() : "—"}</small></div>) : <div className="dashboard-inline-loading">正在加载数据源状态…</div>}</div>
     </section>
   </main>;
 }

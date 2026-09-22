@@ -80,6 +80,7 @@ def _trend(latest: float | None, previous: float | None, annual_growth: float | 
 def _bulk_source_filter():
     return or_(
         SourceSnapshot.source_identifier.like("local:%"),
+        SourceSnapshot.source_identifier.like("baci:%"),
         SourceSnapshot.source_type == "FIXTURE",
     )
 
@@ -438,6 +439,29 @@ def country_opportunity_detail(
                 "observed_type": metric.observed_type,
             },
         )
+    source_rows = db.execute(
+        select(SourceSnapshot.source_identifier, func.min(TradeObservation.period_year), func.max(TradeObservation.period_year))
+        .join(TradeObservation, TradeObservation.source_snapshot_id == SourceSnapshot.id)
+        .where(
+            TradeObservation.reporter_iso3 == country_iso3,
+            TradeObservation.partner_iso3.in_([origin_iso3, "WLD"]),
+            TradeObservation.flow == "IMPORT",
+            TradeObservation.period_type == "YEAR",
+        )
+        .group_by(SourceSnapshot.source_identifier)
+    ).all()
+    source_groups: dict[str, dict[str, Any]] = {}
+    for identifier, first_year, last_year in source_rows:
+        key, label, priority = (
+            ("BACI", "BACI 调和贸易数据", 2)
+            if identifier.startswith("baci:")
+            else ("CHINA_MIRROR", "中国出口镜像", 1)
+            if identifier.startswith("local:mirror:")
+            else ("DIRECT_IMPORT", "目的国进口申报", 3)
+        )
+        existing = source_groups.setdefault(key, {"code": key, "label": label, "priority": priority, "first_year": first_year, "last_year": last_year})
+        existing["first_year"] = min(existing["first_year"], first_year)
+        existing["last_year"] = max(existing["last_year"], last_year)
     return {
         "country": {
             "iso3": country.iso3,
@@ -480,4 +504,5 @@ def country_opportunity_detail(
                 "stability": 10,
             },
         },
+        "data_provenance": sorted(source_groups.values(), key=lambda item: -item["priority"]),
     }

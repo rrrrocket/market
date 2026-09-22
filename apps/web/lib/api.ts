@@ -24,6 +24,7 @@ export type CountryOpportunityDetail = {
   macro:Record<string,{value:number|null;value_text:string|null;unit:string|null;year:number;observed_type:string}>;
   product_pagination:{page:number;page_size:number;total:number;sort:string;q:string|null;opportunity_type:string|null};
   methodology:{score_version:string;weights:Record<string,number>};
+  data_provenance:{code:"DIRECT_IMPORT"|"CHINA_MIRROR"|"BACI";label:string;priority:number;first_year:number;last_year:number}[];
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

@@ -70,6 +70,7 @@ export default function CountryOpportunityDetailView({iso3}:{iso3:string}) {
       <div><div className="eyebrow">{data.country.region} · {data.country.iso3}</div><h1 className="page-title">{data.country.name_zh || data.country.name}</h1><p className="subtitle">{data.country.name} 从中国进口的 HS 商品排名与增长机会 · {data.year}</p></div>
       <div className="country-rank-note">数据口径 <strong>该国报告的自中国进口</strong><span>UN Comtrade · HS 6位</span></div>
     </div>
+    <section className="card country-provenance"><div><div className="eyebrow">数据口径</div><h2>贸易数据覆盖</h2><p>直接进口申报优先；目的国缺报时使用中国出口镜像；BACI 用于补充经调和的历史双边贸易。</p></div><div className="provenance-list">{data.data_provenance.map((source) => <span key={source.code} className={`provenance-pill provenance-${source.code.toLowerCase()}`}><b>{source.label}</b><small>{source.first_year}–{source.last_year}</small></span>)}</div></section>
     <div className="country-summary-grid">
       <div className="card"><small>自中国进口总额</small><strong>{money(summary.china_import_value_usd)}</strong><span>{summary.imported_hs_count.toLocaleString()} 个 HS 有进口</span></div>
       <div className="card"><small>中国供应份额</small><strong>{summary.china_share == null ? "—" : `${(summary.china_share*100).toFixed(1)}%`}</strong><span>占该国这些品类总进口</span></div>
